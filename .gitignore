@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Segredos: connection string do Neon e chave de sessão
+.env
+.env.*
+!.env.example
+
+# Skills de terceiros (ui-ux-pro-max), instaladas localmente por
+# `npx -p ui-ux-pro-max-cli uipro init --ai claude`. Ficam fora do repositório.
+.claude/skills/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
