@@ -1,7 +1,22 @@
 # ControlCRM — Barbearia
 
-MVP de CRM para barbearias. Interface completa e navegável, com dados em memória
-(sem banco de dados).
+CRM para barbearias, em dois produtos sobre a mesma base:
+
+- **Painel do dono** (`/`) — agenda, fila, fichas, financeiro e comissões.
+- **Área do cliente** (`/cliente`) — o cliente final busca barbearias, agenda o
+  corte e acompanha o histórico pelo celular.
+
+> ### 📌 Chegou agora no backend?
+>
+> Comece por **[`docs/HANDOFF-BACKEND.md`](docs/HANDOFF-BACKEND.md)**: explica o
+> que já está pronto, o que falta e em que ordem atacar. O contrato endpoint a
+> endpoint está em [`docs/API-CONTRATO.md`](docs/API-CONTRATO.md).
+>
+> Dois avisos que economizam horas:
+> 1. Parte do front roda hoje sobre uma **camada de dados falsa** em
+>    `src/lib/demo.js`. Ela some sozinha quando as rotas reais existirem.
+> 2. A área do cliente **ainda não verifica quem é o dono do telefone**. Resolver
+>    antes de publicar (§7 do handoff).
 
 ## Funcionalidades
 

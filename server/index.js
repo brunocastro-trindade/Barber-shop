@@ -5,7 +5,9 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { exigirLogin } from "./auth.js";
+import { criarRateLimit } from "./rateLimit.js";
 import authRoutes from "./routes/auth.js";
+import publicoRoutes from "./routes/publico.js";
 import clientesRoutes from "./routes/clientes.js";
 import agendaRoutes from "./routes/agenda.js";
 import filaRoutes from "./routes/fila.js";
@@ -22,8 +24,13 @@ app.use(cookieParser());
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// Login e cadastro são as únicas rotas abertas.
-app.use("/api/auth", authRoutes);
+// Limites de requisições por IP contra abusos e força bruta
+const limitAuth = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 20, mensagem: "Muitas tentativas de login/cadastro. Aguarde 15 minutos." });
+const limitPublico = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 120, mensagem: "Muitas requisições públicas. Aguarde 15 minutos." });
+
+// Login, cadastro e área do cliente são as rotas abertas (públicas).
+app.use("/api/auth", limitAuth, authRoutes);
+app.use("/api/publico", limitPublico, publicoRoutes);
 
 // Daqui para baixo tudo exige sessão, e cada consulta é filtrada pelo
 // barbeiro_id que veio do cookie assinado.

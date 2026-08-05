@@ -5,8 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // O front chama /api/... na mesma origem e o Vite repassa para a API Node.
-    // Assim o cookie de sessão funciona sem CORS e sem configuração extra.
+    // Escuta em todas as interfaces para abrir no celular pelo IP da rede
+    // local (a área do cliente é feita para o telefone).
+    host: true,
     proxy: {
       '/api': {
         target: `http://localhost:${process.env.PORT || 3001}`,

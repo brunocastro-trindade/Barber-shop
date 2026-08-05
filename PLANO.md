@@ -20,14 +20,26 @@ Definidas em sessão de perguntas, 04/08/2026. Não são deriváveis do código.
 | 3 | Histórico | Valor, comissão e duração **congelados no atendimento** |
 | 4 | Assinaturas | Reais no banco, com vencimento — **só registro**, sem gateway de pagamento |
 | 5 | Senha esquecida | Reset **manual**, direto no banco. Sem e-mail transacional |
-| 6 | Cadastro | **Fechado, por convite** |
+| 6 | Cadastro | **Aberto para barbeiros e salões (SaaS B2B)** — sem necessidade de convite |
 | 7 | Publicação | **Adiada**. Roda local enquanto as funcionalidades são terminadas |
 | 8 | Conta nova | Nasce **totalmente vazia** — sem catálogo padrão, sem dados de exemplo |
 | 9 | Estoque e despesas | Ambos no banco |
 | 10 | Agenda | Intervalo real, grade de 30 min. Conflito por sobreposição, não por horário exato |
+| 11 | Login social | **Não haverá.** Só e-mail + senha — ver abaixo |
+| 12 | Tentativas de login | **3 erros bloqueiam o e-mail por 15 min** |
 
-**Adiado de propósito** (volta à mesa só ao publicar): limite de tentativas no
-login, HTTPS/deploy, login individual por barbeiro, e como o dono do SaaS recebe.
+### Por que não existe "Entrar com Google" (decisão 11)
+
+Chegou a ser cogitado e foi **descartado por regra de negócio**: o acesso ao
+painel é pago, e o convite é o que controla quem entra. Login social abriria uma
+porta em que qualquer pessoa com uma conta Google se autentica sozinha — o
+controle de quem pode usar o produto sairia da mão de quem cobra por ele.
+
+Não é dificuldade técnica: é o portão do negócio. Só volta à mesa junto com
+cobrança automatizada, se um dia existir.
+
+**Adiado de propósito** (volta à mesa só ao publicar): HTTPS/deploy, login
+individual por barbeiro, e como o dono do SaaS recebe.
 
 **Aceito no escopo:** fuso fixo `America/Sao_Paulo` — produto só para o Brasil.
 
@@ -75,13 +87,52 @@ Testado ponta a ponta: convite obrigatório e de uso único, conta nascendo vazi
 sobreposição de agenda recusada, baixa gerando visita, reajuste de preço **não**
 alterando o histórico, fila, assinatura e dashboard.
 
-### Etapa 3 — Front (**não feito**)
-`src/App.jsx` ainda tem ~29 referências ao catálogo fixo `N.services`,
-`N.products`, `N.pros`, e chama a API no formato antigo (`profissional`, `hora`,
-`servico`, `barbeiro_pref`). **A aplicação não funciona de ponta a ponta hoje.**
+### Etapa 3 — Front (feito e testado)
+O catálogo fixo `N.services` / `N.products` / `N.pros` não existe mais: `N` é só
+marca e cor. Todas as telas do painel falam o contrato do servidor
+(`servico_id`, `equipe_id`, `hora_inicio`, `servico_nome`, `equipe_nome`), e
+Serviços, Estoque, Equipe, Assinaturas e Despesas persistem no banco.
 
-Falta: religar as seis telas, criar as telas de cadastro de serviços/equipe/
-planos que o schema agora permite, e o campo de convite no cadastro.
+Todo `<select>` de catálogo sai do helper `opcoes()`, que usa **sempre o id
+como valor** — é o que impede a volta do casamento por nome.
+
+O painel deixou de ter modo demonstração; a demo sobrou só na área do cliente,
+onde as rotas `/api/publico/*` ainda não existem.
+
+### Etapa 4 — Organização do front (feito)
+`src/App.jsx` saiu de 2.638 para ~160 linhas. Hoje é só a raiz: sessão,
+navegação e qual tela mostrar. O resto virou `src/ui/` (tokens + peças),
+`src/painel/` (uma tela por arquivo), `src/landing/` e `src/auth/`.
+
+Os dois produtos têm UI própria de propósito: `ui/` + tokens `B` para o painel
+(desktop, escuro), `cliente/ui.jsx` + `LP` para a área do cliente (mobile).
+Componentes homônimos nos dois (`Girando`, `Carregando`, `Vazio`) **não são
+duplicação a unificar** — têm implementações diferentes.
+
+### Etapa 5 — Tela de login (feito)
+Cadastro estava quebrado: o servidor exigia convite e o formulário não tinha o
+campo. Voltou, como primeiro campo.
+
+As duas telas viraram `<form>` de verdade, com `autoComplete` — é o que faz
+gerenciador de senha salvar e preencher. Senha tem olho para revelar. Limite de
+3 tentativas (decisão 12) e uma linha dizendo que a redefinição é manual.
+
+**Preenchido `CONTATO_SUPORTE`** em `src/auth/Telas.jsx`: configurado com `ag.sekoia@gmail.com` (virou link mailto no suporte).
+
+### Etapa 6 — API Pública para Área do Cliente (feito)
+Criadas as rotas públicas `/api/publico/*` em `server/routes/publico.js` e adicionadas as tabelas `favoritos` e `avaliacoes` ao schema Postgres.
+
+- `POST /api/publico/identificar`: busca/cria cliente pelo número de WhatsApp;
+- `GET /api/publico/barbearias` e `GET /api/publico/barbearias/:id`: lista e detalha barbearias, serviços e barbeiros;
+- `GET /api/publico/barbearias/:id/horarios`: calcula grade de horários livres x ocupados no dia;
+- `POST /api/publico/agendar`: cria agendamentos na tabela `agendamentos` com congelamento de valores e trava de sobreposição GiST;
+- `GET /api/publico/clientes/:id/inicio` e `/horarios`: histórico, agendamentos futuros e passados do cliente;
+- `POST /api/publico/clientes/:id/favoritos` e `/avaliacoes`: gerencia barbearias favoritas e avaliações.
+
+### Etapa 8 — Seção de Preços & Fluxo de Checkout (feito)
+- Adicionada a seção `#precos` na Landing Page com alternância entre os ciclos Mensal e Anual e valores sob consulta (`R$ --`);
+- Criado o componente `src/auth/CheckoutPlanos.jsx` para onboarding em 2 passos (Escolha de Plano e Pagamento Simulado);
+- Atualizado o fluxo de entrada do sistema: ao clicar em "Criar conta", o usuário seleciona o plano, confirma o pagamento e a página de cadastro abre com o selo do plano ativo.
 
 ---
 
@@ -160,6 +211,20 @@ vez em `useState(() => ...)` ou fora do componente.
 
 **`setState` síncrono no corpo de um `useEffect`** também é barrado pelo lint.
 Nos callbacks da promise é permitido — e é o padrão correto.
+
+**Contador de tentativas em memória vira 3 × instâncias.** `server/tentativas.js`
+guarda a contagem num `Map` do processo. É suficiente enquanto for um processo
+só — quem ataca não reinicia o nosso servidor. **No dia em que rodar em mais de
+uma instância, isso precisa ir para o banco**, senão o limite real deixa de ser 3.
+
+**Contar tentativa só para e-mail cadastrado entrega quem está na base.** Se o
+e-mail inexistente nunca bloqueasse, a diferença de comportamento seria um
+oráculo de quais contas existem — o mesmo motivo de "e-mail ou senha incorretos"
+ser uma mensagem só. Por isso o contador sobe para qualquer e-mail.
+
+**Botão dentro de `<label>` rouba o foco.** O olho de mostrar senha, se ficar
+dentro do label, faz o clique focar o input (é o que um label faz) e o cursor
+pula para o fim do texto a cada alternância. Fica fora, com `tabIndex={-1}`.
 
 ### Ferramental
 

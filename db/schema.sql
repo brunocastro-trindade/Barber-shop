@@ -235,3 +235,25 @@ create table if not exists despesas (
 );
 
 create index if not exists despesas_barbeiro_idx on despesas (barbeiro_id, data desc);
+
+-- ── Área do Cliente (Pública) ──────────────────────────────────────────────────
+
+create table if not exists favoritos (
+  id          uuid primary key default gen_random_uuid(),
+  cliente_id  uuid not null references clientes(id) on delete cascade,
+  barbeiro_id uuid not null references barbeiros(id) on delete cascade,
+  criado_em   timestamptz not null default now(),
+  unique(cliente_id, barbeiro_id)
+);
+
+create table if not exists avaliacoes (
+  id          uuid primary key default gen_random_uuid(),
+  cliente_id  uuid not null references clientes(id) on delete cascade,
+  barbeiro_id uuid not null references barbeiros(id) on delete cascade,
+  nota        integer not null check (nota >= 1 and nota <= 5),
+  texto       text not null default '',
+  criado_em   timestamptz not null default now()
+);
+
+create index if not exists avaliacoes_barbeiro_idx on avaliacoes (barbeiro_id, criado_em desc);
+

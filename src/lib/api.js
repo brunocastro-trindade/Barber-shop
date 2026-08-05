@@ -1,12 +1,26 @@
 // Cliente HTTP da API. O Vite faz proxy de /api para o servidor Node em dev, e
 // em produção os dois são servidos pela mesma origem — por isso o cookie de
 // sessão viaja sozinho, sem token no localStorage.
+//
+// O painel fala SÓ com a API real. A demonstração ficou restrita à área do
+// cliente, onde as rotas `/api/publico/*` ainda não existem: lá a chamada tenta
+// o servidor e cai para os dados de exemplo se ele não responder.
 
+import { apiDemo } from "./demo.js";
+
+// Além da mensagem, o erro carrega os campos extras que o servidor mandou no
+// corpo. É assim que sinalizadores como `precisaNome` (cliente sem cadastro,
+// veja docs/API-CONTRATO.md §8) chegam até a tela em vez de virar só texto.
 export class ErroApi extends Error {
-  constructor(mensagem, status) {
+  constructor(mensagem, status, corpo) {
     super(mensagem);
     this.name = "ErroApi";
     this.status = status;
+    if (corpo && typeof corpo === "object") {
+      for (const [chave, valor] of Object.entries(corpo)) {
+        if (chave !== "erro" && !(chave in this)) this[chave] = valor;
+      }
+    }
   }
 }
 
@@ -33,7 +47,7 @@ async function pedir(metodo, caminho, corpo) {
   }
 
   if (!resposta.ok) {
-    throw new ErroApi(dados?.erro || `Erro ${resposta.status} no servidor.`, resposta.status);
+    throw new ErroApi(dados?.erro || `Erro ${resposta.status} no servidor.`, resposta.status, dados);
   }
   return dados;
 }
@@ -42,6 +56,37 @@ const get = (c) => pedir("GET", c);
 const post = (c, corpo) => pedir("POST", c, corpo ?? {});
 const patch = (c, corpo) => pedir("PATCH", c, corpo);
 const remove = (c) => pedir("DELETE", c);
+
+// Os cadastros da barbearia (equipe, serviços, produtos, despesas, planos) têm
+// todos o mesmo formato no servidor — ver server/crud.js. Um molde só aqui
+// evita que cada tela invente um caminho diferente.
+const cadastro = (caminho) => ({
+  listar: () => get(caminho),
+  criar: (dados) => post(caminho, dados),
+  atualizar: (id, dados) => patch(`${caminho}/${id}`, dados),
+  remover: (id) => remove(`${caminho}/${id}`),
+});
+
+// Servidor fora do ar: fetch falhou (status 0) ou o proxy devolveu 5xx.
+const servidorIndisponivel = (e) => e instanceof ErroApi && (e.status === 0 || e.status >= 500);
+
+// Envolve um grupo de rotas para cair na demonstração quando o servidor não
+// responde. Usado na área do cliente: quem abre aquele link é o cliente da
+// barbearia, que não tem como "ligar o modo demo" — ou funciona, ou nada feito.
+function comQuedaParaDemo(grupoReal, grupoDemo) {
+  const saida = {};
+  for (const metodo of Object.keys(grupoReal)) {
+    saida[metodo] = async (...args) => {
+      try {
+        return await grupoReal[metodo](...args);
+      } catch (e) {
+        if (servidorIndisponivel(e)) return grupoDemo[metodo](...args);
+        throw e;
+      }
+    };
+  }
+  return saida;
+}
 
 export const api = {
   auth: {
@@ -79,4 +124,44 @@ export const api = {
   dashboard: {
     carregar: () => get("/dashboard"),
   },
+
+  // ── Cadastros da barbearia ──────────────────────────────────────────────────
+  // Estas rotas já existiam no servidor e ficaram sem uso enquanto as telas
+  // guardavam o catálogo em memória.
+  equipe: cadastro("/equipe"),
+  servicos: cadastro("/servicos"),
+  produtos: cadastro("/produtos"),
+  despesas: cadastro("/despesas"),
+  planos: cadastro("/planos"),
+
+  assinaturas: {
+    listar: () => get("/assinaturas"),
+    criar: (dados) => post("/assinaturas", dados),
+    pagar: (id) => post(`/assinaturas/${id}/pagar`),
+    cancelar: (id) => post(`/assinaturas/${id}/cancelar`),
+  },
+  // Área do cliente da barbearia. Rotas públicas: quem chama é o cliente
+  // final, identificado só pelo telefone — não há cookie de dono aqui.
+  // O servidor ainda não expõe estas rotas, então na prática hoje todas caem
+  // na demonstração; quando o backend existir, elas passam a valer sozinhas.
+  publico: comQuedaParaDemo({
+    barbearias: ({ termo = "", modo = "nome" } = {}) =>
+      get(`/publico/barbearias?termo=${encodeURIComponent(termo)}&modo=${modo}`),
+    barbearia: (id, { registrarAcesso = false } = {}) =>
+      get(`/publico/barbearias/${id}${registrarAcesso ? "?acesso=1" : ""}`),
+    inicio: (clienteId) => get(`/publico/clientes/${clienteId}/inicio`),
+    favoritar: (clienteId, barbeariaId) =>
+      post(`/publico/clientes/${clienteId}/favoritos/${barbeariaId}`),
+    identificar: (dados) => post("/publico/identificar", dados),
+    horariosDoDia: (barbeariaId, data, profissional) =>
+      get(`/publico/barbearias/${barbeariaId}/horarios?data=${data}&profissional=${encodeURIComponent(profissional || "")}`),
+    agendar: (dados) => post("/publico/agendar", dados),
+    meusHorarios: (clienteId, filtro) =>
+      get(`/publico/clientes/${clienteId}/horarios?barbearia=${filtro?.barbeariaId || ""}`),
+    cancelar: (clienteId, id) => post(`/publico/clientes/${clienteId}/horarios/${id}/cancelar`),
+    fidelidade: (clienteId, barbeariaId) =>
+      get(`/publico/clientes/${clienteId}/fidelidade/${barbeariaId}`),
+    avaliar: (clienteId, barbeariaId, dados) =>
+      post(`/publico/clientes/${clienteId}/avaliacoes/${barbeariaId}`, dados),
+  }, apiDemo.publico),
 };

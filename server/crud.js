@@ -15,11 +15,19 @@ import { sql } from "./db.js";
 // STRING para não perder precisão, então "75.00" chegaria no front e qualquer
 // soma viraria concatenação. Convertemos para float8 na saída — dinheiro de
 // barbearia cabe com folga na precisão de um double.
-export function crudDeBarbearia({ tabela, colunas, ordem, validar, aoListar, numericos = [] }) {
+//
+// `datas` lista as colunas do tipo date. Elas saem como TEXTO 'YYYY-MM-DD', e
+// não como objeto Date: o driver devolveria um Date à meia-noite local, e
+// reenviá-lo ao banco num PATCH parcial converte para UTC — a data anda um dia
+// para quem está a leste de Greenwich. Como texto, ida e volta é idêntica.
+export function crudDeBarbearia({ tabela, colunas, ordem, validar, aoListar, numericos = [], datas = [] }) {
   const router = Router();
-  const lista = colunas.join(", ");
   const selecao = colunas
-    .map((c) => (numericos.includes(c) ? `${c}::float8 as ${c}` : c))
+    .map((c) => {
+      if (numericos.includes(c)) return `${c}::float8 as ${c}`;
+      if (datas.includes(c)) return `to_char(${c}, 'YYYY-MM-DD') as ${c}`;
+      return c;
+    })
     .join(", ");
 
   const buscarUm = async (id, barbeiroId) => {
@@ -43,12 +51,19 @@ export function crudDeBarbearia({ tabela, colunas, ordem, validar, aoListar, num
     const erro = validar?.(req.body || {}, null);
     if (erro) return res.status(400).json({ erro });
 
-    const marcadores = colunas.map((_, i) => `$${i + 2}`).join(", ");
-    const valores = colunas.map((c) => req.body?.[c] ?? null);
+    // Só insere as colunas que vieram no corpo. Mandar `null` explícito para as
+    // ausentes atropelava o DEFAULT da tabela: criar uma despesa sem `data`
+    // violava o `not null` em vez de cair no dia de hoje.
+    const presentes = colunas.filter((c) => req.body?.[c] !== undefined);
+    const marcadores = presentes.map((_, i) => `$${i + 2}`).join(", ");
+    const valores = presentes.map((c) => req.body[c]);
+
     const linhas = await sql.query(
-      `insert into ${tabela} (barbeiro_id, ${lista})
-       values ($1, ${marcadores})
-       returning id, ${selecao}`,
+      presentes.length
+        ? `insert into ${tabela} (barbeiro_id, ${presentes.join(", ")})
+           values ($1, ${marcadores})
+           returning id, ${selecao}`
+        : `insert into ${tabela} (barbeiro_id) values ($1) returning id, ${selecao}`,
       [req.barbeiroId, ...valores]
     );
     res.status(201).json(linhas[0]);

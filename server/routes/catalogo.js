@@ -38,20 +38,17 @@ export const despesas = crudDeBarbearia({
   tabela: "despesas",
   colunas: ["descricao", "valor", "data", "status"],
   numericos: ["valor"],
+  // `data` como texto em toda saída, inclusive na releitura que o PATCH parcial
+  // faz — é o que impede a data de andar um dia ao dar a volta pelo UTC.
+  datas: ["data"],
   ordem: "data desc, criado_em desc",
   validar: (d) =>
     textoObrigatorio(d.descricao, "a descrição do gasto") ||
     numeroNaFaixa(d.valor, "O valor", 0, 1_000_000) ||
-    (["Pago", "Pendente"].includes(d.status) ? null : "Status deve ser Pago ou Pendente."),
-  // A data volta como texto para não sofrer conversão de fuso no caminho.
-  aoListar: async (barbeiroId) => {
-    const rows = await sql`
-      select id, descricao, valor::float8, to_char(data, 'YYYY-MM-DD') as data, status
-      from despesas where barbeiro_id = ${barbeiroId}
-      order by data desc, criado_em desc
-    `;
-    return rows;
-  },
+    // `data` ausente é válida: a coluna tem default de hoje em Brasília.
+    (d.status === undefined || ["Pago", "Pendente"].includes(d.status)
+      ? null
+      : "Status deve ser Pago ou Pendente."),
 });
 
 export const planos = crudDeBarbearia({
