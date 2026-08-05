@@ -10,7 +10,9 @@ import clientesRoutes from "./routes/clientes.js";
 import agendaRoutes from "./routes/agenda.js";
 import filaRoutes from "./routes/fila.js";
 import visitasRoutes from "./routes/visitas.js";
+import assinaturasRoutes from "./routes/assinaturas.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import { equipe, servicos, produtos, despesas, planos } from "./routes/catalogo.js";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = express();
@@ -29,7 +31,15 @@ app.use("/api/clientes", exigirLogin, clientesRoutes);
 app.use("/api/agendamentos", exigirLogin, agendaRoutes);
 app.use("/api/fila", exigirLogin, filaRoutes);
 app.use("/api/visitas", exigirLogin, visitasRoutes);
+app.use("/api/assinaturas", exigirLogin, assinaturasRoutes);
 app.use("/api/dashboard", exigirLogin, dashboardRoutes);
+
+// Cadastros da barbearia — todos com o mesmo formato de CRUD (ver server/crud.js).
+app.use("/api/equipe", exigirLogin, equipe);
+app.use("/api/servicos", exigirLogin, servicos);
+app.use("/api/produtos", exigirLogin, produtos);
+app.use("/api/despesas", exigirLogin, despesas);
+app.use("/api/planos", exigirLogin, planos);
 
 app.use("/api", (req, res) => res.status(404).json({ erro: "Rota não encontrada" }));
 

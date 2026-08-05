@@ -1,26 +1,28 @@
 import { Router } from "express";
 import { sql } from "../db.js";
+import { resolverServico, resolverEquipe, inserirVisita } from "../snapshots.js";
 
 const router = Router();
-
 const TIPOS = ["assinante", "avulso"];
 
-// Datas sempre viajam como texto YYYY-MM-DD. Deixar o driver converter para Date
-// faria o dia "pular" conforme o fuso do servidor.
-const SELECT_CLIENTES = (barbeiroId) => sql`
-  select c.id, c.nome, c.telefone, c.tipo, c.obs, c.barbeiro_pref,
-         count(v.id)::int                     as visitas,
-         coalesce(sum(v.valor), 0)::float8    as total_gasto,
-         to_char(max(v.data), 'YYYY-MM-DD')   as ultima_visita
+// Contadores (visitas, total gasto, última visita) não são colunas: saem de
+// agregação sobre `visitas`. Assim nunca ficam dessincronizados do caixa.
+const listar = (barbeiroId) => sql`
+  select c.id, c.nome, c.telefone, c.tipo, c.obs, c.equipe_pref,
+         e.nome                                as equipe_pref_nome,
+         count(v.id)::int                      as visitas,
+         coalesce(sum(v.valor), 0)::float8     as total_gasto,
+         to_char(max(v.data), 'YYYY-MM-DD')    as ultima_visita
   from clientes c
   left join visitas v on v.cliente_id = c.id
+  left join equipe  e on e.id = c.equipe_pref
   where c.barbeiro_id = ${barbeiroId}
-  group by c.id
+  group by c.id, e.nome
   order by c.nome
 `;
 
 router.get("/", async (req, res) => {
-  res.json(await SELECT_CLIENTES(req.barbeiroId));
+  res.json(await listar(req.barbeiroId));
 });
 
 router.post("/", async (req, res) => {
@@ -29,11 +31,13 @@ router.post("/", async (req, res) => {
   if (!nome) return res.status(400).json({ erro: "Informe o nome do cliente." });
   if (!TIPOS.includes(tipo)) return res.status(400).json({ erro: "Tipo de cliente inválido." });
 
+  const pref = await resolverEquipe(req.barbeiroId, req.body?.equipe_pref);
+
   const [cliente] = await sql`
-    insert into clientes (barbeiro_id, nome, telefone, tipo, obs, barbeiro_pref)
+    insert into clientes (barbeiro_id, nome, telefone, tipo, obs, equipe_pref)
     values (${req.barbeiroId}, ${nome}, ${(req.body?.telefone || "").trim()}, ${tipo},
-            ${req.body?.obs || ""}, ${req.body?.barbeiro_pref || ""})
-    returning id, nome, telefone, tipo, obs, barbeiro_pref
+            ${req.body?.obs || ""}, ${pref?.id ?? null})
+    returning id, nome, telefone, tipo, obs, equipe_pref
   `;
   res.status(201).json({ ...cliente, visitas: 0, total_gasto: 0, ultima_visita: null });
 });
@@ -47,20 +51,28 @@ router.patch("/:id", async (req, res) => {
   const tipo = req.body?.tipo ?? atual.tipo;
   if (!TIPOS.includes(tipo)) return res.status(400).json({ erro: "Tipo de cliente inválido." });
 
+  // equipe_pref só muda se veio no corpo; e só aceita barbeiro desta barbearia.
+  let pref = atual.equipe_pref;
+  if ("equipe_pref" in (req.body || {})) {
+    pref = (await resolverEquipe(req.barbeiroId, req.body.equipe_pref))?.id ?? null;
+  }
+
   const [cliente] = await sql`
     update clientes set
-      nome          = ${req.body?.nome ?? atual.nome},
-      telefone      = ${req.body?.telefone ?? atual.telefone},
-      tipo          = ${tipo},
-      obs           = ${req.body?.obs ?? atual.obs},
-      barbeiro_pref = ${req.body?.barbeiro_pref ?? atual.barbeiro_pref}
+      nome        = ${req.body?.nome ?? atual.nome},
+      telefone    = ${req.body?.telefone ?? atual.telefone},
+      tipo        = ${tipo},
+      obs         = ${req.body?.obs ?? atual.obs},
+      equipe_pref = ${pref}
     where id = ${req.params.id} and barbeiro_id = ${req.barbeiroId}
-    returning id, nome, telefone, tipo, obs, barbeiro_pref
+    returning id, nome, telefone, tipo, obs, equipe_pref
   `;
   res.json(cliente);
 });
 
 router.delete("/:id", async (req, res) => {
+  // As visitas sobrevivem (cliente_id vira null, cliente_nome permanece): o
+  // cliente sai do cadastro, o faturamento que ele gerou fica no caixa.
   const apagados = await sql`
     delete from clientes where id = ${req.params.id} and barbeiro_id = ${req.barbeiroId}
     returning id
@@ -73,7 +85,8 @@ router.delete("/:id", async (req, res) => {
 
 router.get("/:id/visitas", async (req, res) => {
   const visitas = await sql`
-    select v.id, to_char(v.data, 'YYYY-MM-DD') as data, v.servico, v.profissional, v.valor::float8
+    select v.id, to_char(v.data, 'YYYY-MM-DD') as data, v.servico_nome, v.equipe_nome,
+           v.valor::float8, v.comissao_pct::float8, v.origem
     from visitas v
     join clientes c on c.id = v.cliente_id
     where v.cliente_id = ${req.params.id} and c.barbeiro_id = ${req.barbeiroId}
@@ -88,16 +101,20 @@ router.post("/:id/visitas", async (req, res) => {
   `;
   if (!cliente) return res.status(404).json({ erro: "Cliente não encontrado." });
 
-  const servico = (req.body?.servico || "").trim();
-  if (!servico) return res.status(400).json({ erro: "Informe o serviço realizado." });
+  const servico = await resolverServico(req.barbeiroId, req.body?.servico_id);
+  if (!servico) return res.status(400).json({ erro: "Selecione um serviço do catálogo." });
 
-  const [visita] = await sql`
-    insert into visitas (barbeiro_id, cliente_id, cliente_nome, servico, profissional, valor, origem)
-    values (${req.barbeiroId}, ${cliente.id}, ${cliente.nome}, ${servico},
-            ${req.body?.profissional || ""}, ${Number(req.body?.valor) || 0}, 'manual')
-    returning id, to_char(data, 'YYYY-MM-DD') as data, servico, profissional, valor::float8
-  `;
-  res.status(201).json(visita);
+  const equipe = await resolverEquipe(req.barbeiroId, req.body?.equipe_id);
+
+  await inserirVisita({
+    barbeiroId: req.barbeiroId,
+    cliente, servico, equipe,
+    valor: req.body?.valor !== undefined ? Number(req.body.valor) : undefined,
+    comissaoPct: undefined,
+    origem: "manual",
+  });
+
+  res.status(201).json({ ok: true });
 });
 
 router.delete("/:id/visitas/:visitaId", async (req, res) => {

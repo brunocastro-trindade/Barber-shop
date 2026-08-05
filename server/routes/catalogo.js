@@ -13,6 +13,7 @@ export const equipe = crudDeBarbearia({
 export const servicos = crudDeBarbearia({
   tabela: "servicos",
   colunas: ["nome", "duracao_min", "preco", "comissao_pct", "ativo"],
+  numericos: ["preco", "comissao_pct"],
   ordem: "ativo desc, nome",
   validar: (d) =>
     textoObrigatorio(d.nome, "o nome do serviço") ||
@@ -24,6 +25,7 @@ export const servicos = crudDeBarbearia({
 export const produtos = crudDeBarbearia({
   tabela: "produtos",
   colunas: ["nome", "preco", "quantidade", "minimo"],
+  numericos: ["preco"],
   ordem: "nome",
   validar: (d) =>
     textoObrigatorio(d.nome, "o nome do produto") ||
@@ -35,6 +37,7 @@ export const produtos = crudDeBarbearia({
 export const despesas = crudDeBarbearia({
   tabela: "despesas",
   colunas: ["descricao", "valor", "data", "status"],
+  numericos: ["valor"],
   ordem: "data desc, criado_em desc",
   validar: (d) =>
     textoObrigatorio(d.descricao, "a descrição do gasto") ||
@@ -54,6 +57,7 @@ export const despesas = crudDeBarbearia({
 export const planos = crudDeBarbearia({
   tabela: "planos",
   colunas: ["nome", "preco", "incluidos", "ativo"],
+  numericos: ["preco"],
   ordem: "ativo desc, preco",
   validar: (d) =>
     textoObrigatorio(d.nome, "o nome do plano") ||
