@@ -54,7 +54,7 @@ const PLANOS = [
 
 const moldura = {
   minHeight: "100vh",
-  background: "#050309",
+  background: "#121418",
   color: B.text,
   fontFamily: '"DM Sans", system-ui, sans-serif',
   display: "flex",
@@ -67,7 +67,7 @@ const moldura = {
 };
 
 const cartao = {
-  background: "#0A0712",
+  background: "#1D212A",
   border: `1px solid ${B.border}`,
   borderRadius: 18,
   padding: 32,
@@ -144,7 +144,7 @@ export const CheckoutPlanos = ({ onConcluir, onBack, onLogin }) => {
                     ...cartao,
                     position: "relative",
                     border: ehDestaque ? `2px solid ${N.color}` : `1px solid ${B.border}`,
-                    background: ehDestaque ? `linear-gradient(180deg, ${N.color}15 0%, #0A0712 100%)` : "#0A0712",
+                    background: ehDestaque ? `linear-gradient(180deg, ${N.color}15 0%, #1D212A 100%)` : "#1D212A",
                     display: "flex",
                     flexDirection: "column",
                   }}>

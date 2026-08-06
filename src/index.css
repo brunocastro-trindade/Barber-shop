@@ -3,7 +3,8 @@
 body {
   margin: 0;
   padding: 0;
-  background: #0D0F12;
+  background: #121418;
+  color: #F1F5F9;
   font-family: "DM Sans", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -16,6 +17,6 @@ body {
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #111418; }
-::-webkit-scrollbar-thumb { background: #2C3344; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3D4455; }
+::-webkit-scrollbar-track { background: #121418; }
+::-webkit-scrollbar-thumb { background: #2C3240; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #394152; }

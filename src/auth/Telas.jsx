@@ -18,21 +18,21 @@ import { Aviso, Girando } from "../ui/base.jsx";
 const CONTATO_SUPORTE = "ag.sekoia@gmail.com";
 
 const molduraAuth = {
-  minHeight: "100vh", background: "#050309", color: B.text,
+  minHeight: "100vh", background: "#121418", color: B.text,
   fontFamily: '"DM Sans", system-ui, sans-serif', display: "flex", flexDirection: "column",
   alignItems: "center", justifyContent: "center", padding: "40px 24px",
   position: "relative", overflow: "hidden",
 };
 
 const inp = {
-  width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, color: B.text,
+  width: "100%", padding: "10px 12px", background: "rgba(241,245,249,0.05)",
+  border: "1px solid rgba(241,245,249,0.12)", borderRadius: 9, color: B.text,
   fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
 };
 
 const cartaoAuth = {
-  padding: 32, background: "rgba(19,14,32,0.72)", backdropFilter: "blur(32px)",
-  border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20,
+  padding: 32, background: "rgba(29,33,42,0.85)", backdropFilter: "blur(32px)",
+  border: "1px solid rgba(241,245,249,0.12)", borderRadius: 20,
   boxShadow: "0 8px 56px rgba(0,0,0,0.55)",
 };
 

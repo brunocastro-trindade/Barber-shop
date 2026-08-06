@@ -35,9 +35,9 @@ const ABAS = [
 
 // Banners da tela inicial — no lugar das promoções que a barbearia cadastraria.
 const DESTAQUES = [
-  { titulo: "Marque seu horário sem ligar para a barbearia", cor: "#8B5CF6" },
-  { titulo: "Acompanhe seus pontos e troque por cortes grátis", cor: "#0EA5E9" },
-  { titulo: "Salve suas barbearias favoritas e agende em 2 toques", cor: "#F59E0B" },
+  { titulo: "Marque seu horário sem ligar para a barbearia", cor: "#7C3AED" },
+  { titulo: "Acompanhe seus pontos e troque por cortes grátis", cor: "#FF5500" },
+  { titulo: "Salve suas barbearias favoritas e agende em 2 toques", cor: "#7C3AED" },
 ];
 
 // ── Identificação ─────────────────────────────────────────────────────────────

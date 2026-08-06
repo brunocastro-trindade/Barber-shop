@@ -1,4 +1,4 @@
-﻿// Peças de UI do painel. Sem nada de domínio aqui dentro: estes componentes não
+// Peças de UI do painel. Sem nada de domínio aqui dentro: estes componentes não
 // sabem o que é uma visita ou um agendamento, só como desenhar uma linha, um
 // cartão ou um campo.
 //
@@ -18,12 +18,12 @@ export const GlobalStyles = () => {
       *{box-sizing:border-box}body{margin:0}
       ::-webkit-scrollbar{width:4px;height:4px}
       ::-webkit-scrollbar-track{background:transparent}
-      ::-webkit-scrollbar-thumb{background:#221B38;border-radius:10px}
-      ::-webkit-scrollbar-thumb:hover{background:#2E2549}
-      ::selection{background:#8B5CF645;color:#F2F0FA}
+      ::-webkit-scrollbar-thumb{background:#2C3240;border-radius:10px}
+      ::-webkit-scrollbar-thumb:hover{background:#394152}
+      ::selection{background:#7C3AED45;color:#F1F5F9}
       input,select,textarea{transition:border-color .15s,box-shadow .15s}
-      input:focus,select:focus,textarea:focus{border-color:#8B5CF680!important;box-shadow:0 0 0 3px #8B5CF61E!important;outline:none!important}
-      .crm-nav:hover{background:rgba(255,255,255,0.04)!important;color:#A79FC4!important}
+      input:focus,select:focus,textarea:focus{border-color:#7C3AED80!important;box-shadow:0 0 0 3px #7C3AED1E!important;outline:none!important}
+      .crm-nav:hover{background:rgba(241,245,249,0.04)!important;color:#94A3B8!important}
       .crm-nav.active:hover{opacity:.9}
       @keyframes crm-girar{to{transform:rotate(360deg)}}
       .crm-girar{animation:crm-girar .9s linear infinite}

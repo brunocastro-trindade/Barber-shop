@@ -37,7 +37,7 @@ export const BARBEARIAS = [
     id: 1,
     nome: "Barbearia do Hugo",
     sigla: "BH",
-    cor: "#8B5CF6",
+    cor: "#7C3AED",
     endereco: "Rua das Tesouras, 120 — Centro",
     cidade: "Itajaí/SC",
     distancia: 550,

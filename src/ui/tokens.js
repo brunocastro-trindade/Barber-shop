@@ -7,18 +7,16 @@
 import { Scissors } from "lucide-react";
 
 export const B = {
-  bg: "#060410", bg2: "#0B0817", card: "#100C1D", card2: "#161129",
-  border: "#221B38", border2: "#2E2549",
-  text: "#F2F0FA", muted: "#928CAB", dim: "#544E6B",
-  green: "#22C55E", red: "#EF4444", amber: "#F59E0B", teal: "#14B8A6",
+  bg: "#121418", bg2: "#171A21", card: "#1D212A", card2: "#242934",
+  border: "#2C3240", border2: "#394152",
+  text: "#F1F5F9", muted: "#94A3B8", dim: "#64748B",
+  purple: "#7C3AED", orange: "#FF5500", green: "#22C55E", red: "#EF4444", amber: "#FF5500", teal: "#14B8A6",
 };
 
-// Identidade da marca: só nome, ícone e cor. O catálogo (serviços, produtos,
-// equipe, planos) vive no banco, por barbearia — a conta nasce vazia e o dono
-// cadastra o que é dele.
+// Identidade da marca: Roxo principal (#7C3AED) com Laranja secundário (#FF5500)
 export const N = {
   name: "Barbearia", icon: Scissors,
-  color: "#8B5CF6", secondary: "#059669",
+  color: "#7C3AED", secondary: "#FF5500",
 };
 
 // Base de todo campo de formulário do painel. Fica aqui, e não em base.jsx,
