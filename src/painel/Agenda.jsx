@@ -1,11 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, hojeISO, periodoDaSemana, rotuloDia, segundaDaSemana, somarDias } from "../lib/formato.js";
 import { emMinutos, HORARIOS, opcoes, somente } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Avatar, Aviso, Badge, Btn, Card, Carregando, Col, Divider, Field, PH, Row, Stat, Vazio } from "../ui/base.jsx";
 
@@ -90,11 +89,6 @@ export const Agenda = () => {
         sub={periodoDaSemana(inicio, fim)}
         action={mostrarForm ? "Fechar Formulário" : "+ Novo Agendamento"}
         onAction={() => setMostrarForm(v => !v)}
-        onExport={() => makePDF(N.name, [{
-          title: `Agendamentos — ${periodoDaSemana(inicio, fim)}`,
-          columns: ["Cliente", "Serviço", "Data", "Hora", "Barbeiro", "Status", "Valor"],
-          rows: lista.map(a => [a.cliente_nome, a.servico_nome, dataCurta(a.data), a.hora_inicio, a.equipe_nome || "—", a.status, emReais(a.valor)]),
-        }])}
       />
 
       <Aviso texto={agenda.erro || servicos.erro || equipe.erro || erroAcao} onFechar={() => setErroAcao("")} />
@@ -200,11 +194,11 @@ export const Agenda = () => {
                 </Row>
                 <Divider />
                 <Col gap={8}>
-                  <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Data</span><span style={{ fontSize: 11, color: B.text }}>{rotuloDia(selecionado.data)} — {selecionado.hora_inicio}</span></Row>
+                  <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Data</span><span style={{ fontSize: 11, color: B.text }}>{rotuloDia(selecionado.data)}, {selecionado.hora_inicio}</span></Row>
                   <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Duração</span><span style={{ fontSize: 11, color: B.text }}>{selecionado.duracao_min} min</span></Row>
                   <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Valor</span><span style={{ fontSize: 11, color: B.text }}>{emReais(selecionado.valor)}</span></Row>
                   <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Comissão</span><span style={{ fontSize: 11, color: B.text }}>{selecionado.comissao_pct}% · {emReais(selecionado.valor * selecionado.comissao_pct / 100)}</span></Row>
-                  <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Barbeiro</span><span style={{ fontSize: 11, color: B.text }}>{selecionado.equipe_nome || "—"}</span></Row>
+                  <Row style={{ justifyContent: "space-between" }}><span style={{ fontSize: 11, color: B.muted }}>Barbeiro</span><span style={{ fontSize: 11, color: B.text }}>{selecionado.equipe_nome || "Sem barbeiro"}</span></Row>
                   <Row style={{ justifyContent: "space-between" }}>
                     <span style={{ fontSize: 11, color: B.muted }}>Status</span>
                     <Badge text={selecionado.status} color={selecionado.status === "Pago" ? N.secondary : selecionado.status === "Cancelado" ? B.red : B.teal} />

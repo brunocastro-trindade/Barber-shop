@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, CalendarDays, ListOrdered, User, Scissors, Package, Wallet,
-  CreditCard, Users, Bell, MessageSquare, Settings, Download, LogOut,
+  CreditCard, Users, Bell, Settings, LogOut,
 } from "lucide-react";
 
 import { api } from "./lib/api.js";
@@ -23,9 +23,7 @@ import Financeiro from "./painel/Financeiro.jsx";
 import Assinaturas from "./painel/Assinaturas.jsx";
 import Equipe from "./painel/Equipe.jsx";
 import Lembretes from "./painel/Lembretes.jsx";
-import WhatsAppEmail from "./painel/Integracoes.jsx";
 import Taxas from "./painel/Conta.jsx";
-import ExportarDados from "./painel/Exportar.jsx";
 
 // ── Navegação ─────────────────────────────────────────────────────────────────
 const NAV_GROUPS = [
@@ -44,9 +42,7 @@ const NAV_GROUPS = [
     { id: "lembretes",   icon: Bell,         label: "Lembretes" },
   ] },
   { label: "CONFIGURAÇÕES", items: [
-    { id: "whatsappemail", icon: MessageSquare, label: "Integrações" },
     { id: "taxas",         icon: Settings,      label: "Conta & Taxas" },
-    { id: "exportar",      icon: Download,      label: "Exportar Dados" },
   ] },
 ];
 
@@ -116,15 +112,13 @@ export default function App() {
     assinaturas: <Assinaturas />,
     equipe: <Equipe />,
     lembretes: <Lembretes />,
-    whatsappemail: <WhatsAppEmail user={user} />,
     taxas: <Taxas user={user} />,
-    exportar: <ExportarDados user={user} />,
   };
 
   return (
     <div style={{ display: "flex", height: "100vh", background: B.bg, color: B.text, fontFamily: '"DM Sans", system-ui, sans-serif', overflow: "hidden" }}>
       <GlobalStyles />
-      <div style={{ width: 230, background: "#08051A", borderRight: `1px solid ${B.border}`, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0, boxShadow: `4px 0 28px rgba(0,0,0,0.4)` }}>
+      <div style={{ width: 230, background: "#16181D", borderRight: `1px solid ${B.border}`, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0, boxShadow: `4px 0 28px rgba(0,0,0,0.4)` }}>
         <div style={{ padding: "16px 14px 14px", borderBottom: `1px solid ${B.border}` }}>
           <Row gap={10}>
             <div style={{ width: 36, height: 36, borderRadius: 12, background: `linear-gradient(135deg, ${N.color}, #6D28D9)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: `0 4px 18px ${N.color}55, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
@@ -168,7 +162,7 @@ export default function App() {
           </div>
         </div>
       </div>
-      <div style={{ flex: 1, overflow: "auto", padding: "28px 32px", background: `radial-gradient(ellipse 55% 38% at 75% 0%, rgba(139,92,246,0.09), transparent 65%), ${B.bg}` }}>
+      <div className="crm-panel-bg" style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
         {screens[active] || <Vazio texto="Selecione um módulo" />}
       </div>
     </div>

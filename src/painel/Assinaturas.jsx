@@ -1,11 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Check, X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, paraNumero } from "../lib/formato.js";
 import { opcoes, somente } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Avatar, Aviso, Badge, Btn, Card, Carregando, Col, Field, PH, Row, Stat, Vazio } from "../ui/base.jsx";
 
@@ -71,11 +70,7 @@ export const Assinaturas = () => {
   return (
     <Col gap={14}>
       <PH title="Assinaturas Mensais" sub="Clube do cliente — planos e receita recorrente"
-        action={mostrarNovo ? "Fechar" : "+ Novo Plano"} onAction={() => setMostrarNovo(v => !v)}
-        onExport={() => makePDF(N.name, [
-          { title: "Planos de Assinatura", columns: ["Plano", "Preço", "Assinantes", "Serviços incluídos"], rows: listaPlanos.map(p => [p.nome, `${emReais(p.preco)}/mês`, (p.assinantes ?? 0) + "", (p.incluidos || []).join(", ")]) },
-          { title: "Assinaturas", columns: ["Cliente", "Plano", "Início", "Vencimento", "Situação"], rows: listaAssinaturas.map(a => [a.cliente_nome, a.plano_nome, dataCurta(a.inicio), dataCurta(a.vencimento), a.status === "ativa" ? (a.vencida ? "Vencida" : "Em dia") : "Cancelada"]) },
-        ])} />
+        action={mostrarNovo ? "Fechar" : "+ Novo Plano"} onAction={() => setMostrarNovo(v => !v)} />
 
       <Aviso texto={assinaturas.erro || planos.erro || clientes.erro || erroAcao} onFechar={() => setErroAcao("")} />
 

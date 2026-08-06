@@ -22,7 +22,7 @@ const FaqItem = ({ pergunta, resposta, aberta, onToggle }) => (
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         color: LP.dim, fontSize: 16, fontWeight: 400,
         transform: aberta ? "rotate(45deg)" : "none", transition: "transform .25s",
-        background: aberta ? "rgba(139,92,246,0.15)" : "transparent",
+        background: aberta ? `${LP.roxo}25` : "transparent",
       }}>+</span>
     </div>
     <div style={{
@@ -352,7 +352,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
               overflow: "hidden", display: "flex", flexDirection: "column",
               boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
             }}>
-              <div style={{ flex: 1, minHeight: 240, position: "relative", background: "linear-gradient(180deg, rgba(139,92,246,0.06), transparent 60%)" }}>
+              <div style={{ flex: 1, minHeight: 240, position: "relative", background: `linear-gradient(180deg, ${LP.roxo}12, transparent 60%)` }}>
                 {r.visual}
               </div>
               <div style={{ padding: "8px 24px 28px" }}>
@@ -429,9 +429,8 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
                 <p style={{ fontSize: 13, color: LP.dim, lineHeight: 1.6, margin: "0 0 24px", minHeight: 40 }}>{p.desc}</p>
 
                 <div style={{ padding: "20px 0", borderTop: `1px solid ${LP.border}`, borderBottom: `1px solid ${LP.border}`, marginBottom: 24 }}>
-                  <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", letterSpacing: "-1px" }}>
-                    R$ --
-                    <span style={{ fontSize: 14, fontWeight: 400, color: LP.dim }}> / mês</span>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>
+                    Sob consulta
                   </div>
                   <div style={{ fontSize: 11, color: LP.roxoClaro, fontWeight: 600, marginTop: 4 }}>
                     Valores em breve (preço sob consulta)

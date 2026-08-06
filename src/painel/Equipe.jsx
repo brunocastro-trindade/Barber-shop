@@ -1,11 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { emReais } from "../lib/formato.js";
 import { somente } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Avatar, Aviso, Badge, Btn, Card, Carregando, Col, Divider, Field, PH, Row, Stat, Vazio } from "../ui/base.jsx";
 
@@ -45,8 +44,7 @@ export const Equipe = () => {
   return (
     <Col gap={14}>
       <PH title="Equipe de Barbeiros" sub="Comissão do mês, com o percentual congelado em cada atendimento"
-        action={mostrarAdd ? "Fechar" : "+ Adicionar Barbeiro"} onAction={() => setMostrarAdd(v => !v)}
-        onExport={() => makePDF(N.name, [{ title: "Equipe de Barbeiros — mês corrente", columns: ["Barbeiro", "Situação", "Atendimentos", "Faturado", "Comissão"], rows: lista.map(p => { const d = desempenhoDe(p.id); return [p.nome, p.ativo ? "Ativo" : "Inativo", d.atendimentos + "", emReais(d.faturado), emReais(d.comissao)]; }) }])} />
+        action={mostrarAdd ? "Fechar" : "+ Adicionar Barbeiro"} onAction={() => setMostrarAdd(v => !v)} />
 
       <Aviso texto={equipe.erro || resumo.erro || erroAcao} onFechar={() => setErroAcao("")} />
 

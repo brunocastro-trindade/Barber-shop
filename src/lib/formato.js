@@ -65,7 +65,7 @@ export const rotuloDia = (iso) => {
 };
 
 export const dataCurta = (iso) => {
-  if (!iso) return "—";
+  if (!iso) return "Nenhuma";
   const d = doISO(iso);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 };

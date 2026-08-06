@@ -1,10 +1,9 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, emReaisCurto, hojeISO, paraNumero } from "../lib/formato.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Aviso, Badge, Btn, Card, Carregando, ChartLine, Col, Field, ImgBox, PH, Row, Stat, Table, Vazio } from "../ui/base.jsx";
 
@@ -66,10 +65,6 @@ export const Financeiro = () => {
         sub="Receita real vinda dos atendimentos registrados"
         action={mostrarAdd ? "Fechar" : "+ Novo Gasto"}
         onAction={() => setMostrarAdd(v => !v)}
-        onExport={() => makePDF(N.name, [
-          { title: "Atendimentos", columns: ["Data", "Cliente", "Serviço", "Barbeiro", "Valor", "Comissão"], rows: pagamentos.map(p => [dataCurta(p.data), p.cliente_nome, p.servico_nome, p.equipe_nome || "—", emReais(p.valor), emReais(p.comissao_valor)]) },
-          { title: "Gastos", columns: ["Data", "Descrição", "Valor", "Status"], rows: listaDespesas.map(e => [dataCurta(e.data), e.descricao, emReais(e.valor), e.status]) },
-        ])}
       />
 
       <Aviso texto={visitas.erro || resumo.erro || despesas.erro || erroAcao} onFechar={() => setErroAcao("")} />
@@ -142,7 +137,7 @@ export const Financeiro = () => {
             <Table
               cols={["DATA", "CLIENTE", "SERVIÇO", "BARBEIRO", "ORIGEM", "VALOR", "COMISSÃO"]}
               rows={pagamentos.map(p => [
-                dataCurta(p.data), p.cliente_nome, p.servico_nome, p.equipe_nome || "—",
+                dataCurta(p.data), p.cliente_nome, p.servico_nome, p.equipe_nome || "Sem barbeiro",
                 <Badge text={p.origem} color={p.origem === "agenda" ? B.teal : p.origem === "fila" ? B.amber : B.muted} />,
                 emReais(p.valor),
                 emReais(p.comissao_valor),

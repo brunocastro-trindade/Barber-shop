@@ -115,6 +115,26 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
     }
   };
 
+  const entrarDemo = async () => {
+    setErro(""); setEnviando(true);
+    const creds = { email: "demo@barbearia.com", senha: "demo123" };
+    try {
+      onSuccess(await api.auth.entrar(creds));
+    } catch {
+      try {
+        onSuccess(await api.auth.cadastrar({
+          nome: "Barbeiro Mestre",
+          barbearia: "Barbearia Premium Demo",
+          whatsapp: "(11) 99999-8888",
+          ...creds,
+        }));
+      } catch (errCad) {
+        setErro(errCad.message);
+        setEnviando(false);
+      }
+    }
+  };
+
   return (
     <div style={molduraAuth}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 60% at 50% 30%, ${N.color}25 0%, ${N.color}08 50%, transparent 75%)` }} />
@@ -134,6 +154,17 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
 
           <button type="submit" disabled={enviando} style={botaoPrimario(enviando)}>
             {enviando ? "Entrando..." : "Entrar →"}
+          </button>
+
+          <button type="button" disabled={enviando} onClick={entrarDemo}
+            style={{
+              width: "100%", marginTop: 10, padding: 11, borderRadius: 999,
+              background: "rgba(255,85,0,0.15)", color: "#FF5500",
+              border: "1px solid rgba(255,85,0,0.4)", fontSize: 13,
+              fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            ⚡ Acessar Painel Demo (1-Clique)
           </button>
 
           <div style={{ marginTop: 14, textAlign: "center", fontSize: 11, color: B.dim, lineHeight: 1.6 }}>

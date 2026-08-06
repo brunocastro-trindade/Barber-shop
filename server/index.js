@@ -69,3 +69,9 @@ const porta = Number(process.env.PORT) || 3001;
 app.listen(porta, () => {
   console.log(`[ControlCRM] API em http://localhost:${porta}`);
 });
+
+// Garante que o processo da API continue ativo em ambiente dev/Windows (Node 24)
+if (process.stdin.isTTY || process.stdout.isTTY) {
+  process.stdin.resume();
+}
+setInterval(() => {}, 1000 * 60 * 60);

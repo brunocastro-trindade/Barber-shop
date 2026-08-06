@@ -1,4 +1,4 @@
-﻿import { CalendarDays, CheckCircle, ListOrdered, TrendingUp, User, Wallet } from "lucide-react";
+import { CalendarDays, CheckCircle, ListOrdered, TrendingUp, User, Wallet } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, emReaisCurto, rotuloDia } from "../lib/formato.js";
@@ -107,8 +107,8 @@ export const Dashboard = ({ user, onNavigate }) => {
                     <Row key={i} gap={8} style={{ padding: "7px 0", borderBottom: i < dados.atividade.length - 1 ? `0.5px solid ${B.border}` : "none" }}>
                       <Icone size={14} color={N.secondary} strokeWidth={1.8} style={{ flexShrink: 0 }} />
                       <Col gap={1} style={{ flex: 1 }}>
-                        <span style={{ fontSize: 11, color: B.text }}>{a.cliente_nome} — {a.servico_nome}</span>
-                        <span style={{ fontSize: 10, color: B.muted }}>{dataCurta(a.data)} · {emReais(a.valor)} · {a.equipe_nome || "—"}</span>
+                        <span style={{ fontSize: 11, color: B.text }}>{a.cliente_nome}, {a.servico_nome}</span>
+                        <span style={{ fontSize: 10, color: B.muted }}>{dataCurta(a.data)} · {emReais(a.valor)} · {a.equipe_nome || "Sem barbeiro"}</span>
                       </Col>
                     </Row>
                   );

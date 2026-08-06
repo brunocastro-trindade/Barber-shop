@@ -5,7 +5,7 @@
 // A área do cliente (src/cliente/ui.jsx) tem peças próprias, mobile-first, e
 // reaproveita daqui só o que é idêntico.
 import { useState, useEffect } from "react";
-import { Loader2, AlertTriangle, X, Download } from "lucide-react";
+import { Loader2, AlertTriangle, X } from "lucide-react";
 import { emReais } from "../lib/formato.js";
 import { B, N, inputBase } from "./tokens.js";
 
@@ -27,6 +27,28 @@ export const GlobalStyles = () => {
       .crm-nav.active:hover{opacity:.9}
       @keyframes crm-girar{to{transform:rotate(360deg)}}
       .crm-girar{animation:crm-girar .9s linear infinite}
+      @keyframes crm-bg-motion {
+        0% { background-position: 0% 0%, 100% 100%, 30% 20%; }
+        50% { background-position: 100% 60%, 0% 40%, 80% 90%; }
+        100% { background-position: 20% 100%, 80% 0%, 10% 40%; }
+      }
+      button { transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s ease, background .2s ease, border-color .2s ease; }
+      button:hover:not(:disabled) {
+        transform: translateY(-1px) scale(1.01);
+        background: linear-gradient(135deg, #FF5500 0%, #FF3300 100%) !important;
+        border-color: #FF5500 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 28px rgba(255,85,0,0.75), 0 6px 22px rgba(255,85,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+      }
+      .crm-panel-bg {
+        background-color: #121418;
+        background-image:
+          radial-gradient(circle at 75% 25%, rgba(255,85,0,0.38) 0%, transparent 55%),
+          radial-gradient(circle at 20% 75%, rgba(124,58,237,0.25) 0%, transparent 60%),
+          radial-gradient(circle at 50% 50%, rgba(255,85,0,0.28) 0%, transparent 65%);
+        background-size: 220% 220%, 220% 220%, 200% 200%;
+        animation: crm-bg-motion 14s ease-in-out infinite alternate;
+      }
     `;
     document.head.appendChild(s);
     return () => { try { document.getElementById("crm-gs")?.remove(); } catch { /* já removido */ } };
@@ -44,37 +66,41 @@ export const Col = ({ children, style, gap = 10 }) => (
 
 export const Btn = ({ children, color, sm, danger, outline, onClick, disabled }) => {
   const [hov, setHov] = useState(false);
-  const isColor = color && !outline;
+  const baseColor = color || N.color;
   return (
     <div
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5, cursor: disabled ? "not-allowed" : "pointer",
+        display: "inline-flex", alignItems: "center", gap: 6, cursor: disabled ? "not-allowed" : "pointer",
         whiteSpace: "nowrap", userSelect: "none", opacity: disabled ? 0.5 : 1,
-        padding: sm ? "5px 13px" : "8px 18px", borderRadius: 999,
-        fontSize: sm ? 11 : 12, fontWeight: 600, letterSpacing: ".01em",
-        transition: "all 0.14s ease",
-        background: isColor
-          ? hov && !disabled ? color : color + "e8"
-          : danger ? (hov ? "rgba(58,18,18,.95)" : "rgba(40,14,14,.85)")
-          : outline ? (hov ? color + "18" : "transparent")
-          : hov ? "#1E1734" : "#161126",
-        color: isColor ? "#fff" : danger ? B.red : outline ? color : B.text,
+        padding: sm ? "6px 14px" : "9px 20px", borderRadius: 999,
+        fontSize: sm ? 11 : 12, fontWeight: 700, letterSpacing: ".01em",
+        transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+        transform: hov && !disabled ? "translateY(-2px) scale(1.02)" : "translateY(0) scale(1)",
+        background: hov && !disabled
+          ? "linear-gradient(135deg, #FF5500 0%, #FF3300 100%)"
+          : outline
+          ? "transparent"
+          : danger
+          ? "rgba(40,14,14,.85)"
+          : baseColor,
+        color: hov && !disabled ? "#ffffff" : danger ? B.red : outline ? baseColor : "#ffffff",
         border: `1px solid ${
-          isColor ? (hov ? color : color + "70")
-          : danger ? B.red + "55"
-          : outline ? color + "55"
-          : hov ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)"
+          hov && !disabled
+            ? "#FF5500"
+            : outline
+            ? baseColor + "66"
+            : danger
+            ? B.red + "55"
+            : baseColor + "80"
         }`,
-        boxShadow: isColor
-          ? hov
-            ? `0 6px 22px ${color}55, inset 0 1px 0 rgba(255,255,255,0.32)`
-            : `0 3px 12px ${color}30, inset 0 1px 0 rgba(255,255,255,0.24)`
-          : hov
-          ? "0 4px 14px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.09)"
-          : "0 2px 6px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)",
+        boxShadow: hov && !disabled
+          ? "0 0 32px rgba(255,85,0,0.8), 0 8px 24px rgba(255,85,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)"
+          : outline
+          ? `0 2px 10px ${baseColor}20`
+          : `0 4px 18px ${baseColor}45, inset 0 1px 0 rgba(255,255,255,0.3)`,
       }}
     >{children}</div>
   );
@@ -89,26 +115,28 @@ export const Stat = ({ label, value, sub, color }) => (
   <div style={{
     background: `linear-gradient(160deg, ${B.card2} 0%, ${B.card} 100%)`,
     border: `1px solid ${B.border}`,
-    borderRadius: 18, padding: "18px 20px", flex: 1, minWidth: 0,
+    borderRadius: 18, padding: "18px 20px", flex: 1, minWidth: 0, minHeight: 115,
+    display: "flex", flexDirection: "column", justifyContent: "space-between",
     boxShadow: "0 20px 50px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)",
-    position: "relative", overflow: "hidden",
+    position: "relative", overflow: "hidden", wordBreak: "break-word",
   }}>
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: color ? `radial-gradient(ellipse 70% 90% at 100% 0%, ${color}20, transparent 65%)` : "none" }} />
-    <div style={{ position: "relative", fontSize: 10, fontWeight: 600, color: B.muted, marginBottom: 10, letterSpacing: ".08em", textTransform: "uppercase" }}>{label}</div>
-    <div style={{ position: "relative", fontSize: 27, fontWeight: 800, color: color || B.text, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-    {sub && <div style={{ position: "relative", fontSize: 11, color: B.muted, marginTop: 7 }}>{sub}</div>}
+    <div style={{ position: "relative", fontSize: 10, fontWeight: 700, color: B.muted, marginBottom: 8, letterSpacing: ".08em", textTransform: "uppercase" }}>{label}</div>
+    <div style={{ position: "relative", fontSize: 26, fontWeight: 800, color: color || B.text, letterSpacing: "-0.03em", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+    <div style={{ position: "relative", fontSize: 11, color: B.muted, marginTop: 6, minHeight: 16 }}>{sub || ""}</div>
   </div>
 );
 
 export const Card = ({ children, title, action, style, accentColor }) => (
   <div style={{
-    background: B.card, border: `1px solid ${B.border}`, borderRadius: 20, padding: 20,
+    background: B.card, border: `1px solid ${B.border}`, borderRadius: 20, padding: 22,
     boxShadow: "0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    minWidth: 0, boxSizing: "border-box", wordBreak: "break-word",
     ...style
   }}>
     {title && (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${B.border}` }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: B.text, letterSpacing: ".01em" }}>{title}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${B.border}` }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: B.text, letterSpacing: ".01em" }}>{title}</span>
         {action && <Btn sm color={accentColor}>{action}</Btn>}
       </div>
     )}
@@ -266,23 +294,14 @@ export const Avatar = ({ name, color, size = 28 }) => {
   );
 };
 
-export const PH = ({ title, sub, action, onAction, onExport }) => (
+export const PH = ({ title, sub, action, onAction }) => (
   <div style={{ marginBottom: 28 }}>
     <Row style={{ alignItems: "flex-start" }}>
       <Col gap={5} style={{ flex: 1 }}>
         <h2 style={{ fontSize: 24, fontWeight: 800, color: B.text, margin: 0, letterSpacing: "-0.04em", lineHeight: 1.1 }}>{title}</h2>
         {sub && <p style={{ fontSize: 12, color: B.muted, margin: 0, fontWeight: 400 }}>{sub}</p>}
       </Col>
-      <Row gap={8}>
-        {onExport && (
-          <button onClick={onExport} title="Exportar PDF"
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 15px", borderRadius: 999, background: B.card, border: `1px solid ${B.border}`, color: B.muted, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", transition: "all .14s" }}
-            onMouseEnter={e => { e.currentTarget.style.color = B.text; e.currentTarget.style.borderColor = B.border2; }}
-            onMouseLeave={e => { e.currentTarget.style.color = B.muted; e.currentTarget.style.borderColor = B.border; }}
-          ><Download size={13} strokeWidth={1.8} /> PDF</button>
-        )}
-        {action && <Btn color={N.color} onClick={onAction}>{action}</Btn>}
-      </Row>
+      {action && <Btn color={N.color} onClick={onAction}>{action}</Btn>}
     </Row>
   </div>
 );

@@ -1,11 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { emReais, paraNumero } from "../lib/formato.js";
 import { somente } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Aviso, Badge, Btn, Card, Carregando, Col, Field, PH, Row, Stat, Table, Vazio } from "../ui/base.jsx";
 
@@ -48,14 +47,13 @@ export const Servicos = () => {
 
   return (
     <Col gap={14}>
-      <PH title="Serviços" sub="Catálogo de cortes, barba e tratamentos"
-        onExport={() => makePDF(N.name, [{ title: "Serviços", columns: ["Nome", "Duração", "Preço", "Comissão", "Situação"], rows: lista.map(s => [s.nome, `${s.duracao_min} min`, emReais(s.preco), `${s.comissao_pct}%`, s.ativo ? "Ativo" : "Inativo"]) }])} />
+      <PH title="Serviços" sub="Catálogo de cortes, barba e tratamentos" />
 
       <Aviso texto={servicos.erro || erroAcao} onFechar={() => setErroAcao("")} />
 
       <Row gap={10}>
         <Stat label="Serviços ativos" value={ativos.length + ""} sub={lista.length - ativos.length ? `${lista.length - ativos.length} inativos` : undefined} />
-        <Stat label="Mais caro" value={maisCaro?.nome || "—"} sub={maisCaro ? emReais(maisCaro.preco) : undefined} color={N.color} />
+        <Stat label="Mais caro" value={maisCaro?.nome || "Nenhum"} sub={maisCaro ? emReais(maisCaro.preco) : undefined} color={N.color} />
         <Stat label="Preço médio" value={emReais(ativos.reduce((s, x) => s + x.preco, 0) / (ativos.length || 1))} color={N.secondary} />
       </Row>
 

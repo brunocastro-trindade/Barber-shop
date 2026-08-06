@@ -1,11 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { CheckCircle, Phone, Trash2, X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, emReaisCurto, paraNumero } from "../lib/formato.js";
 import { opcoes, somente, TIPO_CLIENTE } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Avatar, Aviso, Badge, Btn, Card, Carregando, Col, Field, PH, Row, Stat, Vazio } from "../ui/base.jsx";
 
@@ -63,12 +62,7 @@ export const FichaCliente = () => {
       <PH title="Fichas de Clientes"
         sub={clientes.dados ? `${lista.length} clientes · ${lista.filter(c => c.tipo === "assinante").length} assinantes` : "Carregando..."}
         action={mostrarAdd ? "Fechar" : "+ Novo Cliente"}
-        onAction={() => setMostrarAdd(v => !v)}
-        onExport={() => makePDF(N.name, [{
-          title: "Clientes",
-          columns: ["Nome", "Telefone", "Tipo", "Barbeiro preferido", "Visitas", "Última visita", "Total gasto"],
-          rows: lista.map(c => [c.nome, c.telefone || "—", TIPO_CLIENTE[c.tipo].label, c.equipe_pref_nome || "—", c.visitas + "", dataCurta(c.ultima_visita), emReais(c.total_gasto)]),
-        }])} />
+        onAction={() => setMostrarAdd(v => !v)} />
 
       <Aviso texto={clientes.erro || servicos.erro || equipe.erro || erroAcao} onFechar={() => setErroAcao("")} />
 
@@ -116,7 +110,7 @@ export const FichaCliente = () => {
                 <Badge text={TIPO_CLIENTE[c.tipo].label} color={TIPO_CLIENTE[c.tipo].color} />
               </Row>
               <Row gap={14}>
-                <span style={{ fontSize: 11, color: B.muted }}><Phone size={11} strokeWidth={1.8} /> {c.telefone || "—"}</span>
+                <span style={{ fontSize: 11, color: B.muted }}><Phone size={11} strokeWidth={1.8} /> {c.telefone || "Não informado"}</span>
                 <span style={{ fontSize: 11, color: B.muted }}>{c.visitas} visitas · última {dataCurta(c.ultima_visita)}</span>
               </Row>
             </Col>
@@ -206,7 +200,7 @@ const DetalheCliente = ({ cliente, servicos, equipe, salvando, erro, onLimparErr
                 <Col gap={1}>
                   <span style={{ fontSize: 12, color: B.text }}>{h.servico_nome}</span>
                   <span style={{ fontSize: 10, color: B.muted }}>
-                    {dataCurta(h.data)} · {h.equipe_nome || "—"} · {emReais(h.valor)}
+                    {dataCurta(h.data)} · {h.equipe_nome || "Sem barbeiro"} · {emReais(h.valor)}
                   </span>
                 </Col>
                 <Row gap={8}>

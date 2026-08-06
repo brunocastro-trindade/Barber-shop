@@ -32,11 +32,15 @@ export const lpBtnFantasma = {
 export const CSS_VITRINE = `
   .lp-link{color:${LP.dim};cursor:pointer;transition:color .2s;text-decoration:none;font-size:14px}
   .lp-link:hover{color:#fff}
-  .lp-btn{transition:transform .18s ease, box-shadow .18s ease, background .18s ease}
-  .lp-btn:hover{transform:translateY(-1px)}
+  .lp-btn{transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s ease, background .2s ease, border-color .2s ease}
+  .lp-btn:hover:not(:disabled){
+    transform:translateY(-2px) scale(1.02)!important;
+    background:linear-gradient(135deg, #FF5500 0%, #FF3300 100%)!important;
+    border-color:#FF5500!important;
+    color:#ffffff!important;
+    box-shadow:0 0 32px rgba(255,85,0,0.8), 0 8px 24px rgba(255,85,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)!important;
+  }
   .lp-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-  .lp-btn-primario:hover:not(:disabled){box-shadow:0 0 0 1px rgba(124,58,237,.5),0 12px 44px rgba(124,58,237,.6),inset 0 1px 0 rgba(255,255,255,.35)!important}
-  .lp-btn-fantasma:hover:not(:disabled){background:rgba(241,245,249,.08)!important}
   @keyframes lpSubir{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
   .lp-anim{animation:lpSubir .8s cubic-bezier(.2,.65,.3,1) both}
   .lp-op{transition:border-color .18s, background .18s, transform .18s}

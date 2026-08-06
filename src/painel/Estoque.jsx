@@ -1,10 +1,9 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { emReais, paraNumero } from "../lib/formato.js";
 import { useRecurso } from "../lib/useRecurso.js";
-import { makePDF } from "../lib/pdf.js";
 import { B, N } from "../ui/tokens.js";
 import { Aviso, Badge, Btn, Card, Carregando, Col, Field, PH, Row, Stat, Table, Vazio } from "../ui/base.jsx";
 
@@ -56,8 +55,7 @@ export const Estoque = () => {
 
   return (
     <Col gap={14}>
-      <PH title="Estoque de Produtos" sub="Controle dos produtos usados e revendidos na barbearia"
-        onExport={() => makePDF(N.name, [{ title: "Estoque de Produtos", columns: ["Produto", "Preço unit.", "Qtd. atual", "Mínimo", "Status"], rows: lista.map(p => [p.nome, emReais(p.preco), p.quantidade + "", p.minimo + "", p.quantidade < p.minimo ? "Baixo" : "OK"]) }])} />
+      <PH title="Estoque de Produtos" sub="Controle dos produtos usados e revendidos na barbearia" />
 
       <Aviso texto={produtos.erro || erroAcao} onFechar={() => setErroAcao("")} />
 

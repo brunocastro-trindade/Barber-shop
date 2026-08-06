@@ -478,7 +478,7 @@ function AbaMenu({ cliente, onAbrirLoja, onSair, onVoltarSite }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{cliente.nome}</div>
           <div style={{ fontSize: 13, color: LP.dim, marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
-            <Phone size={12} strokeWidth={1.9} /> {cliente.telefone || "—"}
+            <Phone size={12} strokeWidth={1.9} /> {cliente.telefone || "Não informado"}
           </div>
         </div>
       </div>

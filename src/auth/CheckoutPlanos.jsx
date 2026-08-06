@@ -8,8 +8,8 @@ const PLANOS = [
     id: "solo",
     nome: "Solo",
     sub: "Ideal para barbeiros autônomos",
-    mensal: "R$ --",
-    anual: "R$ --",
+    mensal: "Sob consulta",
+    anual: "Sob consulta",
     recursos: [
       "1 barbeiro / profissional",
       "Agendamentos ilimitados",
@@ -24,8 +24,8 @@ const PLANOS = [
     nome: "Equipe",
     sub: "Ideal para barbearias em crescimento",
     destaque: true,
-    mensal: "R$ --",
-    anual: "R$ --",
+    mensal: "Sob consulta",
+    anual: "Sob consulta",
     recursos: [
       "Até 5 barbeiros na equipe",
       "Comissão automática por barbeiro",
@@ -39,8 +39,8 @@ const PLANOS = [
     id: "pro",
     nome: "Pro / Redes",
     sub: "Para barbearias de grande fluxo e redes",
-    mensal: "R$ --",
-    anual: "R$ --",
+    mensal: "Sob consulta",
+    anual: "Sob consulta",
     recursos: [
       "Barbeiros ilimitados",
       "Múltiplas unidades / filiais",
