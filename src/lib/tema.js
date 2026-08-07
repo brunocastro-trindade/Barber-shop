@@ -2,6 +2,10 @@
 // O painel do dono (src/App.jsx) usa a paleta B, mais densa; estas cores são
 // da "vitrine": fundo quase preto arroxeado, glow violeta e muito respiro.
 
+// Coolvetica é a fonte do site inteiro (ver src/index.css); esta constante
+// só existe para os pontos que citam a família explicitamente no style inline.
+export const FONT_MARCA = '"Coolvetica", system-ui, sans-serif';
+
 export const LP = {
   bg: "#121418",
   text: "#F1F5F9",
@@ -11,7 +15,7 @@ export const LP = {
   card: "rgba(241, 245, 249, 0.03)",
   roxo: "#7C3AED",
   roxoClaro: "#A78BFA",
-  laranja: "#FF5500",
+  laranja: "#fc570a",
 };
 
 export const lpBtnPrimario = {
@@ -35,10 +39,10 @@ export const CSS_VITRINE = `
   .lp-btn{transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s ease, background .2s ease, border-color .2s ease}
   .lp-btn:hover:not(:disabled){
     transform:translateY(-2px) scale(1.02)!important;
-    background:linear-gradient(135deg, #FF5500 0%, #FF3300 100%)!important;
-    border-color:#FF5500!important;
+    background:linear-gradient(135deg, #fc570a 0%, #FF3300 100%)!important;
+    border-color:#fc570a!important;
     color:#ffffff!important;
-    box-shadow:0 0 32px rgba(255,85,0,0.8), 0 8px 24px rgba(255,85,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)!important;
+    box-shadow:0 0 32px rgba(252,87,10,0.8), 0 8px 24px rgba(252,87,10,0.55), inset 0 1px 0 rgba(255,255,255,0.4)!important;
   }
   .lp-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
   @keyframes lpSubir{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}

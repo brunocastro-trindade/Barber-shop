@@ -1,3 +1,14 @@
+/* Coolvetica Regular é a fonte do site inteiro, sem exceção — títulos, corpo,
+   formulários. Só existe a face Regular, e font-synthesis:none impede o
+   navegador de "inventar" um negrito falso quando algum elemento pede
+   font-weight mais pesado — tudo sempre renderiza na Regular de verdade. */
+@font-face {
+  font-family: "Coolvetica";
+  src: url("/fonts/coolvetica-regular.otf") format("opentype");
+  font-weight: 400;
+  font-display: swap;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -5,7 +16,8 @@ body {
   padding: 0;
   background: #121418;
   color: #F1F5F9;
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: "Coolvetica", system-ui, sans-serif;
+  font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

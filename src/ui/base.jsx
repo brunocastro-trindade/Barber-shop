@@ -35,17 +35,17 @@ export const GlobalStyles = () => {
       button { transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s ease, background .2s ease, border-color .2s ease; }
       button:hover:not(:disabled) {
         transform: translateY(-1px) scale(1.01);
-        background: linear-gradient(135deg, #FF5500 0%, #FF3300 100%) !important;
-        border-color: #FF5500 !important;
+        background: linear-gradient(135deg, #fc570a 0%, #FF3300 100%) !important;
+        border-color: #fc570a !important;
         color: #ffffff !important;
-        box-shadow: 0 0 28px rgba(255,85,0,0.75), 0 6px 22px rgba(255,85,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+        box-shadow: 0 0 28px rgba(252,87,10,0.75), 0 6px 22px rgba(252,87,10,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important;
       }
       .crm-panel-bg {
         background-color: #121418;
         background-image:
-          radial-gradient(circle at 75% 25%, rgba(255,85,0,0.38) 0%, transparent 55%),
+          radial-gradient(circle at 75% 25%, rgba(252,87,10,0.38) 0%, transparent 55%),
           radial-gradient(circle at 20% 75%, rgba(124,58,237,0.25) 0%, transparent 60%),
-          radial-gradient(circle at 50% 50%, rgba(255,85,0,0.28) 0%, transparent 65%);
+          radial-gradient(circle at 50% 50%, rgba(252,87,10,0.28) 0%, transparent 65%);
         background-size: 220% 220%, 220% 220%, 200% 200%;
         animation: crm-bg-motion 14s ease-in-out infinite alternate;
       }
@@ -80,7 +80,7 @@ export const Btn = ({ children, color, sm, danger, outline, onClick, disabled })
         transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         transform: hov && !disabled ? "translateY(-2px) scale(1.02)" : "translateY(0) scale(1)",
         background: hov && !disabled
-          ? "linear-gradient(135deg, #FF5500 0%, #FF3300 100%)"
+          ? "linear-gradient(135deg, #fc570a 0%, #FF3300 100%)"
           : outline
           ? "transparent"
           : danger
@@ -89,7 +89,7 @@ export const Btn = ({ children, color, sm, danger, outline, onClick, disabled })
         color: hov && !disabled ? "#ffffff" : danger ? B.red : outline ? baseColor : "#ffffff",
         border: `1px solid ${
           hov && !disabled
-            ? "#FF5500"
+            ? "#fc570a"
             : outline
             ? baseColor + "66"
             : danger
@@ -97,7 +97,7 @@ export const Btn = ({ children, color, sm, danger, outline, onClick, disabled })
             : baseColor + "80"
         }`,
         boxShadow: hov && !disabled
-          ? "0 0 32px rgba(255,85,0,0.8), 0 8px 24px rgba(255,85,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)"
+          ? "0 0 32px rgba(252,87,10,0.8), 0 8px 24px rgba(252,87,10,0.55), inset 0 1px 0 rgba(255,255,255,0.4)"
           : outline
           ? `0 2px 10px ${baseColor}20`
           : `0 4px 18px ${baseColor}45, inset 0 1px 0 rgba(255,255,255,0.3)`,

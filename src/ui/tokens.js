@@ -10,13 +10,13 @@ export const B = {
   bg: "#121418", bg2: "#171A21", card: "#1D212A", card2: "#242934",
   border: "#2C3240", border2: "#394152",
   text: "#F1F5F9", muted: "#94A3B8", dim: "#64748B",
-  purple: "#7C3AED", orange: "#FF5500", green: "#22C55E", red: "#EF4444", amber: "#FF5500", teal: "#14B8A6",
+  purple: "#7C3AED", orange: "#fc570a", green: "#22C55E", red: "#EF4444", amber: "#fc570a", teal: "#14B8A6",
 };
 
-// Identidade da marca: Roxo principal (#7C3AED) com Laranja secundário (#FF5500)
+// Identidade da marca: Roxo principal (#7C3AED) com Laranja secundário (#fc570a)
 export const N = {
   name: "Barbearia", icon: Scissors,
-  color: "#7C3AED", secondary: "#FF5500",
+  color: "#7C3AED", secondary: "#fc570a",
 };
 
 // Base de todo campo de formulário do painel. Fica aqui, e não em base.jsx,

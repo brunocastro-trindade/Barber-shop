@@ -56,7 +56,7 @@ const moldura = {
   minHeight: "100vh",
   background: "#121418",
   color: B.text,
-  fontFamily: '"DM Sans", system-ui, sans-serif',
+  fontFamily: '"Coolvetica", system-ui, sans-serif',
   display: "flex",
   flexDirection: "column",
   alignItems: "center",

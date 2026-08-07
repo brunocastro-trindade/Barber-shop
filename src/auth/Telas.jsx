@@ -19,7 +19,7 @@ const CONTATO_SUPORTE = "ag.sekoia@gmail.com";
 
 const molduraAuth = {
   minHeight: "100vh", background: "#121418", color: B.text,
-  fontFamily: '"DM Sans", system-ui, sans-serif', display: "flex", flexDirection: "column",
+  fontFamily: '"Coolvetica", system-ui, sans-serif', display: "flex", flexDirection: "column",
   alignItems: "center", justifyContent: "center", padding: "40px 24px",
   position: "relative", overflow: "hidden",
 };
@@ -140,6 +140,7 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 60% at 50% 30%, ${N.color}25 0%, ${N.color}08 50%, transparent 75%)` }} />
       <div style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1 }}>
         <button type="button" onClick={onBack} style={botaoVoltar}>← Voltar</button>
+        <img src="/logos/logo-roxa.png" alt="Cut Flow" style={{ height: 34, width: "auto", display: "block", margin: "0 auto 22px" }} />
         <form onSubmit={entrar} style={cartaoAuth}>
           <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Entrar</div>
           <div style={{ fontSize: 13, color: B.muted, marginBottom: 24 }}>Acesse o painel da sua barbearia</div>
@@ -159,8 +160,8 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
           <button type="button" disabled={enviando} onClick={entrarDemo}
             style={{
               width: "100%", marginTop: 10, padding: 11, borderRadius: 999,
-              background: "rgba(255,85,0,0.15)", color: "#FF5500",
-              border: "1px solid rgba(255,85,0,0.4)", fontSize: 13,
+              background: "rgba(252,87,10,0.15)", color: "#fc570a",
+              border: "1px solid rgba(252,87,10,0.4)", fontSize: 13,
               fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}>
@@ -219,6 +220,7 @@ export const RegisterPage = ({ planoInfo, onSuccess, onLogin, onBack }) => {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 60% at 50% 30%, ${N.color}20 0%, ${N.color}06 50%, transparent 75%)` }} />
       <div style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
         <button type="button" onClick={onBack} style={botaoVoltar}>← Voltar</button>
+        <img src="/logos/logo-roxa.png" alt="Cut Flow" style={{ height: 34, width: "auto", display: "block", margin: "0 auto 22px" }} />
         <form onSubmit={cadastrar} style={cartaoAuth}>
           <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Criar conta</div>
           <div style={{ fontSize: 13, color: B.muted, marginBottom: 16 }}>
@@ -263,8 +265,11 @@ export const RegisterPage = ({ planoInfo, onSuccess, onLogin, onBack }) => {
 };
 
 export const TelaInicial = () => (
-  <div style={{ ...molduraAuth, gap: 12 }}>
-    <Girando size={26} color={N.color} />
-    <span style={{ fontSize: 13, color: B.muted }}>Carregando ControlCRM...</span>
+  <div style={{ ...molduraAuth, gap: 18 }}>
+    <img src="/logos/logo-roxa.png" alt="Cut Flow" style={{ height: 44, width: "auto" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Girando size={16} color={N.color} />
+      <span style={{ fontSize: 13, color: B.muted }}>Carregando...</span>
+    </div>
   </div>
 );
