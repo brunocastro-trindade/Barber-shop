@@ -22,8 +22,14 @@ import {
 } from "./ui.jsx";
 import { diaSemana, diaMes, porExtenso, dataLonga, mascaraTelefone } from "./formatos.js";
 
-// A sessão do cliente é só o id da ficha: não há dado sensível, e guardar
-// evita pedir o telefone a cada visita.
+// Quem autentica o cliente é o cookie `cc_cliente`, assinado pelo servidor e
+// httpOnly — o JavaScript desta página não o alcança, e é essa a intenção.
+//
+// O localStorage guarda só o nome, para a tela já abrir com "Olá, Fulano" em
+// vez de piscar vazio enquanto o servidor confirma. Não é credencial: apagar,
+// editar ou inventar este valor não dá acesso a nada, porque toda rota da área
+// do cliente lê a identidade do cookie. Antes, o id da ficha morava aqui e ia
+// na URL — e era exatamente isso que permitia ler a vida de outra pessoa.
 const CHAVE_SESSAO = "cc_cliente_sessao";
 
 const ABAS = [
@@ -44,24 +50,21 @@ const DESTAQUES = [
 
 function Entrada({ onEntrou, onVoltarSite }) {
   const [telefone, setTelefone] = useState("");
-  const [nome, setNome] = useState("");
-  const [pedirNome, setPedirNome] = useState(false);
+  const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const continuar = async () => {
     setErro(""); setEnviando(true);
     try {
-      onEntrou(await api.publico.identificar({ telefone, nome: pedirNome ? nome : "" }));
+      onEntrou(await api.publico.identificar({ telefone, codigo }));
     } catch (e) {
-      // O erro com precisaNome não é falha: é o cadastro pedindo o nome.
-      if (e.precisaNome) { setPedirNome(true); setErro(""); }
-      else setErro(e.message);
+      setErro(e.message);
       setEnviando(false);
     }
   };
 
-  const podeEnviar = telefone.replace(/\D/g, "").length >= 10 && (!pedirNome || nome.trim());
+  const podeEnviar = telefone.replace(/\D/g, "").length >= 10 && codigo.trim().length >= 4;
 
   return (
     <div style={{ padding: "48px 20px 60px", maxWidth: 440, margin: "0 auto" }}>
@@ -94,33 +97,34 @@ function Entrada({ onEntrou, onVoltarSite }) {
           onKeyDown={e => e.key === "Enter" && podeEnviar && continuar()}
         />
 
-        {pedirNome && (
-          <>
-            <div style={{
-              fontSize: 13, color: LP.roxoClaro, lineHeight: 1.6, marginBottom: 14,
-              padding: "11px 14px", borderRadius: 12,
-              background: `${LP.roxo}14`, border: `1px solid ${LP.roxo}38`,
-            }}>
-              Primeira vez aqui! Como podemos te chamar?
-            </div>
-            <Campo
-              rotulo="Seu nome"
-              placeholder="Ex: Lucas Almeida"
-              value={nome}
-              onChange={e => setNome(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && podeEnviar && continuar()}
-            />
-          </>
-        )}
+        <Campo
+          rotulo="Código de acesso"
+          placeholder="Ex: 7K4M2Q"
+          value={codigo}
+          maxLength={8}
+          style={{ textTransform: "uppercase", letterSpacing: "0.18em", fontWeight: 700 }}
+          onChange={e => setCodigo(e.target.value.toUpperCase())}
+          onKeyDown={e => e.key === "Enter" && podeEnviar && continuar()}
+        />
+
+        <div style={{
+          fontSize: 13, color: LP.dim, lineHeight: 1.6, marginBottom: 14,
+          padding: "11px 14px", borderRadius: 12,
+          background: `${LP.roxo}14`, border: `1px solid ${LP.roxo}38`,
+        }}>
+          O código é o que garante que só você vê seus horários. Peça o seu na
+          barbearia onde você é atendido — eles geram na hora do cadastro.
+        </div>
 
         <button onClick={continuar} disabled={enviando || !podeEnviar}
           className="lp-btn lp-btn-primario"
           style={{ ...lpBtnPrimario, width: "100%", marginTop: 6, padding: "15px 28px", fontSize: 15 }}>
-          {enviando ? "Aguarde..." : pedirNome ? "Criar meu cadastro →" : "Continuar →"}
+          {enviando ? "Aguarde..." : "Entrar →"}
         </button>
 
         <p style={{ fontSize: 12, color: LP.dimmer, textAlign: "center", margin: "16px 0 0", lineHeight: 1.6 }}>
-          Sem senha e sem cadastro chato.<br />Se você já é cliente, a gente reconhece seu número.
+          Ainda não é cliente de nenhuma barbearia daqui?<br />
+          É só pedir seu cadastro na próxima visita.
         </p>
       </Cartao>
 
@@ -143,7 +147,7 @@ function AbaInicio({ cliente, onAbrirLoja, onBuscar }) {
 
   useEffect(() => {
     let ativo = true;
-    api.publico.inicio(cliente.id)
+    api.publico.inicio()
       .then(d => { if (ativo) setDados(d); })
       .catch(e => { if (ativo) setErro(e.message); });
     return () => { ativo = false; };
@@ -332,7 +336,7 @@ function AbaBuscar({ cliente, onAbrirLoja }) {
 
 // ── Aba Agendamentos ──────────────────────────────────────────────────────────
 
-function AbaAgenda({ cliente, onAbrirLoja }) {
+function AbaAgenda({ onAbrirLoja }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -341,10 +345,10 @@ function AbaAgenda({ cliente, onAbrirLoja }) {
   const [lojas, setLojas] = useState([]);
 
   const carregar = useCallback(() => {
-    api.publico.meusHorarios(cliente.id, { barbeariaId: filtro || undefined })
+    api.publico.meusHorarios({ barbeariaId: filtro || undefined })
       .then(setDados)
       .catch(e => setErro(e.message));
-  }, [cliente.id, filtro]);
+  }, [filtro]);
 
   useEffect(carregar, [carregar]);
 
@@ -358,7 +362,7 @@ function AbaAgenda({ cliente, onAbrirLoja }) {
 
   const cancelar = async (id) => {
     setErro(""); setCancelandoId(id);
-    try { await api.publico.cancelar(cliente.id, id); carregar(); }
+    try { await api.publico.cancelar(id); carregar(); }
     catch (e) { setErro(e.message); }
     finally { setCancelandoId(null); }
   };
@@ -460,10 +464,10 @@ function AbaMenu({ cliente, onAbrirLoja, onSair, onVoltarSite }) {
 
   useEffect(() => {
     let ativo = true;
-    api.publico.meusHorarios(cliente.id)
+    api.publico.meusHorarios()
       .then(d => { if (ativo) setDados(d); })
       .catch(() => { /* o resumo é opcional */ });
-    api.publico.inicio(cliente.id)
+    api.publico.inicio()
       .then(d => { if (ativo) setFavoritos(d.favoritos); })
       .catch(() => { /* idem */ });
     return () => { ativo = false; };
@@ -642,19 +646,40 @@ export default function AreaCliente({ onVoltarSite }) {
   const [lojaAberta, setLojaAberta] = useState(null);
   const [ultimo, setUltimo] = useState(null);
 
-  const entrar = (c) => {
-    setCliente(c);
-    try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ id: c.id, nome: c.nome, telefone: c.telefone }));
-    } catch { /* sem storage */ }
-    setAba("inicio");
-  };
-
-  const sair = () => {
+  const esquecerLocal = useCallback(() => {
     try { localStorage.removeItem(CHAVE_SESSAO); } catch { /* sem storage */ }
     setCliente(null);
     setLojaAberta(null);
     setUltimo(null);
+  }, []);
+
+  // O nome guardado abre a tela sem piscar, mas quem manda é o cookie. Se ele
+  // expirou ou foi limpo, o servidor responde 401 e a tela volta para a
+  // identificação — em vez de exibir uma sessão que não existe mais.
+  useEffect(() => {
+    if (!cliente) return;
+    let ativo = true;
+    api.publico.eu()
+      .then(c => { if (ativo) setCliente(atual => (atual ? { ...atual, ...c } : atual)); })
+      .catch(e => { if (ativo && e.status === 401) esquecerLocal(); });
+    return () => { ativo = false; };
+    // Só na montagem: revalidar a cada troca de aba não acrescenta nada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const entrar = (c) => {
+    setCliente(c);
+    try {
+      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ id: c.id, nome: c.nome }));
+    } catch { /* sem storage */ }
+    setAba("inicio");
+  };
+
+  // Encerra também no servidor: sem isso o cookie continuaria válido, e a
+  // próxima pessoa a abrir o navegador entraria na conta de quem "saiu".
+  const sair = () => {
+    api.publico.sair().catch(() => { /* offline: o local já foi limpo */ });
+    esquecerLocal();
   };
 
   const moldura = {
@@ -721,7 +746,7 @@ export default function AreaCliente({ onVoltarSite }) {
       <div style={{ position: "relative", zIndex: 1, paddingBottom: 86 }}>
         {aba === "inicio" && <AbaInicio cliente={cliente} onAbrirLoja={abrirLoja} onBuscar={() => setAba("buscar")} />}
         {aba === "buscar" && <AbaBuscar cliente={cliente} onAbrirLoja={abrirLoja} />}
-        {aba === "agenda" && <AbaAgenda cliente={cliente} onAbrirLoja={abrirLoja} />}
+        {aba === "agenda" && <AbaAgenda onAbrirLoja={abrirLoja} />}
         {aba === "menu" && <AbaMenu cliente={cliente} onAbrirLoja={abrirLoja} onSair={sair} onVoltarSite={onVoltarSite} />}
       </div>
 

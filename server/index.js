@@ -19,6 +19,16 @@ import { equipe, servicos, produtos, despesas, planos } from "./routes/catalogo.
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = express();
 
+// Quantos proxies existem à frente da aplicação.
+//
+// Padrão 0 (desligado): `req.ip` vira o endereço real do socket, que o cliente
+// não tem como falsificar. Ligar isto sem ter proxy de verdade na frente
+// devolveria o controle do IP para quem manda o X-Forwarded-For — e o rate
+// limit voltaria a ser contornável trocando o header a cada requisição.
+// Em produção atrás de um proxy só (Nginx, Render, Fly), use TRUST_PROXY=1.
+const proxies = Number(process.env.TRUST_PROXY) || 0;
+if (proxies > 0) app.set("trust proxy", proxies);
+
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 
@@ -28,8 +38,15 @@ app.get("/api/health", (req, res) => res.json({ ok: true }));
 const limitAuth = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 20, mensagem: "Muitas tentativas de login/cadastro. Aguarde 15 minutos." });
 const limitPublico = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 120, mensagem: "Muitas requisições públicas. Aguarde 15 minutos." });
 
+// Adivinhar o código de acesso é o único ataque restante contra a área do
+// cliente, então esta rota tem limite próprio e bem mais apertado que o resto
+// do /api/publico. São ~1 bilhão de códigos possíveis; a 10 tentativas por
+// quarto de hora, tentar 0,001% do espaço já levaria séculos.
+const limitIdentificar = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 10, mensagem: "Muitas tentativas de acesso. Aguarde 15 minutos." });
+
 // Login, cadastro e área do cliente são as rotas abertas (públicas).
 app.use("/api/auth", limitAuth, authRoutes);
+app.use("/api/publico/identificar", limitIdentificar);
 app.use("/api/publico", limitPublico, publicoRoutes);
 
 // Daqui para baixo tudo exige sessão, e cada consulta é filtrada pelo

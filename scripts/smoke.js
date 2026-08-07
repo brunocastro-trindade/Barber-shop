@@ -196,6 +196,10 @@ try {
   ok(soStatus.dados?.descricao === "Sem data" && soStatus.dados?.valor === 10,
     "os demais campos sobrevivem ao PATCH parcial", soStatus.dados);
 
+  // Guardado antes das seções que trocam de sessão, para a área do cliente
+  // conseguir voltar e ler o código gerado na ficha.
+  const cookieDono = cookie;
+
   console.log("\n── Limite de tentativas de login ────────────────────────");
   // E-mail descartável e inexistente: o contador é por e-mail, então isto não
   // tranca a conta de teste nem nenhuma real. E provar que um e-mail que não
@@ -218,6 +222,51 @@ try {
   // Outro e-mail não pode ter sido afetado: o bloqueio é por conta, não global.
   const outro = await chamar("POST", "/auth/login", { email: `outro-${codigo}@teste.local`, senha: "x" });
   ok(outro.status === 401, "outro e-mail continua livre — o bloqueio não é global", outro.status);
+
+  console.log("\n── Área do cliente: telefone + código ───────────────────");
+  cookie = cookieDono;
+  const fichas = await chamar("GET", "/clientes");
+  const ficha = fichas.dados?.find(c => c.id === cliente.dados.id);
+  ok(/^[A-HJ-NP-Z2-9]{6}$/.test(ficha?.codigo_acesso || ""),
+    "cadastro manual já gera o código de acesso", ficha?.codigo_acesso);
+
+  cookie = "";
+  const semCodigo = await chamar("POST", "/publico/identificar", { telefone: "(11) 98888-0000" });
+  ok(semCodigo.status === 400, "só o telefone não entra", semCodigo.status);
+
+  const codigoErrado = await chamar("POST", "/publico/identificar", {
+    telefone: "(11) 98888-0000", codigo: "AAAAAA",
+  });
+  ok(codigoErrado.status === 401, "telefone certo com código errado não entra", codigoErrado.status);
+
+  const semSessaoCliente = await chamar("GET", "/publico/eu/horarios");
+  ok(semSessaoCliente.status === 401, "sem sessão de cliente, o histórico é negado", semSessaoCliente.status);
+
+  const entrou = await chamar("POST", "/publico/identificar", {
+    telefone: "(11) 98888-0000", codigo: ficha.codigo_acesso,
+  });
+  ok(entrou.status === 200 && entrou.dados?.nome === "João Cliente", "telefone + código entra", entrou);
+  ok(entrou.dados?.telefone === undefined, "a resposta não devolve o telefone de volta", entrou.dados);
+
+  const meus = await chamar("GET", "/publico/eu/horarios");
+  ok(meus.status === 200 && Array.isArray(meus.dados?.historico),
+    "o histórico vem pela sessão, sem id na URL", meus.status);
+
+  // Uma avaliação por barbearia, e só de quem foi atendido de verdade.
+  const av1 = await chamar("POST", `/publico/eu/avaliacoes/${barbeiroId}`, { nota: 5, texto: "Ótimo" });
+  ok(av1.status === 200, "quem já foi atendido consegue avaliar", av1);
+  const av2 = await chamar("POST", `/publico/eu/avaliacoes/${barbeiroId}`, { nota: 3, texto: "Mudei de ideia" });
+  ok(av2.status === 200, "reavaliar é permitido (substitui a nota)", av2);
+  const [{ qtd }] = await sql`
+    select count(*)::int as qtd from avaliacoes where barbeiro_id = ${barbeiroId}
+  `;
+  ok(qtd === 1, "e continua existindo UMA avaliação, não duas", qtd);
+
+  // O token de cliente não pode virar sessão de dono.
+  const tokenCliente = cookie.match(/cc_cliente=([^;]+)/)?.[1];
+  cookie = `cc_sessao=${tokenCliente}`;
+  const escalada = await chamar("GET", "/clientes");
+  ok(escalada.status === 401, "token de cliente não vira sessão de dono", escalada.status);
 
   console.log("\n── Isolamento entre contas ──────────────────────────────");
   cookie = "";

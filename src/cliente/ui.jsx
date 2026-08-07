@@ -168,10 +168,12 @@ export const Chip = ({ children, ativo, onClick }) => (
   }}>{children}</button>
 );
 
-export const Campo = ({ rotulo, ...props }) => (
+// `style` recebido soma-se ao estilo base em vez de substituí-lo: com o spread
+// depois do style, quem passasse `style` perdia borda, fundo e espaçamento.
+export const Campo = ({ rotulo, style, ...props }) => (
   <div style={{ marginBottom: 14 }}>
     {rotulo && <Rotulo>{rotulo}</Rotulo>}
-    <input style={campoEstilo} {...props} />
+    <input {...props} style={{ ...campoEstilo, ...style }} />
   </div>
 );
 

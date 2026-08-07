@@ -18,11 +18,15 @@ export function criarRateLimit({
   if (timer.unref) timer.unref();
 
   return (req, res, next) => {
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.ip ||
-      req.socket?.remoteAddress ||
-      "127.0.0.1";
+    // `req.ip` e NÃO o header X-Forwarded-For cru.
+    //
+    // Ler o header direto tornava este limitador decorativo: qualquer um manda
+    // `X-Forwarded-For: <aleatório>` a cada requisição e cada uma delas conta
+    // como um IP novo. O Express só confia nesse header quando `trust proxy`
+    // está ligado (ver server/index.js), e aí respeitando a quantidade de
+    // proxies configurada — o resto vira o endereço real do socket, que o
+    // cliente não escolhe.
+    const ip = req.ip || req.socket?.remoteAddress || "127.0.0.1";
 
     const agora = Date.now();
     const reg = conexoes.get(ip) || { contagem: 0, expiraEm: agora + janelaMs };

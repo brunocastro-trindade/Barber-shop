@@ -1,14 +1,20 @@
 import { Router } from "express";
 import { sql } from "../db.js";
 import { resolverServico, resolverEquipe, inserirVisita } from "../snapshots.js";
+import { gerarCodigoAcesso } from "../codigoAcesso.js";
 
 const router = Router();
 const TIPOS = ["assinante", "avulso"];
 
 // Contadores (visitas, total gasto, última visita) não são colunas: saem de
 // agregação sobre `visitas`. Assim nunca ficam dessincronizados do caixa.
+//
+// `codigo_acesso` sai daqui de propósito: é o barbeiro quem dita o código ao
+// cliente, então ele precisa vê-lo na ficha. Só o dono da barbearia chega a
+// esta rota (exigirLogin), e o filtro por barbeiro_id impede ler o código de
+// cliente de outra conta.
 const listar = (barbeiroId) => sql`
-  select c.id, c.nome, c.telefone, c.tipo, c.obs, c.equipe_pref,
+  select c.id, c.nome, c.telefone, c.tipo, c.obs, c.equipe_pref, c.codigo_acesso,
          e.nome                                as equipe_pref_nome,
          count(v.id)::int                      as visitas,
          coalesce(sum(v.valor), 0)::float8     as total_gasto,
@@ -33,11 +39,12 @@ router.post("/", async (req, res) => {
 
   const pref = await resolverEquipe(req.barbeiroId, req.body?.equipe_pref);
 
+  // A ficha já nasce com o código que o cliente vai usar na área pública.
   const [cliente] = await sql`
-    insert into clientes (barbeiro_id, nome, telefone, tipo, obs, equipe_pref)
+    insert into clientes (barbeiro_id, nome, telefone, tipo, obs, equipe_pref, codigo_acesso)
     values (${req.barbeiroId}, ${nome}, ${(req.body?.telefone || "").trim()}, ${tipo},
-            ${req.body?.obs || ""}, ${pref?.id ?? null})
-    returning id, nome, telefone, tipo, obs, equipe_pref
+            ${req.body?.obs || ""}, ${pref?.id ?? null}, ${gerarCodigoAcesso()})
+    returning id, nome, telefone, tipo, obs, equipe_pref, codigo_acesso
   `;
   res.status(201).json({ ...cliente, visitas: 0, total_gasto: 0, ultima_visita: null });
 });
@@ -65,8 +72,21 @@ router.patch("/:id", async (req, res) => {
       obs         = ${req.body?.obs ?? atual.obs},
       equipe_pref = ${pref}
     where id = ${req.params.id} and barbeiro_id = ${req.barbeiroId}
-    returning id, nome, telefone, tipo, obs, equipe_pref
+    returning id, nome, telefone, tipo, obs, equipe_pref, codigo_acesso
   `;
+  res.json(cliente);
+});
+
+// Gera um código novo. Serve para quando o cliente perde o código, ou quando
+// ele foi visto por quem não devia — trocar custa nada e derruba o antigo na
+// hora, porque o login público confere o valor atual da ficha.
+router.post("/:id/codigo", async (req, res) => {
+  const [cliente] = await sql`
+    update clientes set codigo_acesso = ${gerarCodigoAcesso()}
+    where id = ${req.params.id} and barbeiro_id = ${req.barbeiroId}
+    returning id, codigo_acesso
+  `;
+  if (!cliente) return res.status(404).json({ erro: "Cliente não encontrado." });
   res.json(cliente);
 });
 

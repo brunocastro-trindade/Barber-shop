@@ -47,7 +47,9 @@ const NOME_COMODIDADE = {
 // O serviço já veio escolhido da lista, então sobra: barbeiro, dia/hora e
 // confirmação.
 
-function Agendar({ cliente, loja, servico, onVoltar, onPronto }) {
+// `cliente` não é mais parâmetro: a identidade vem do cookie de sessão, e
+// passar o objeto adiante só convidava alguém a mandá-lo para o servidor.
+function Agendar({ loja, servico, onVoltar, onPronto }) {
   const [passo, setPasso] = useState(1);
   const [barbeiro, setBarbeiro] = useState("Qualquer");
   const [dia, setDia] = useState(null);
@@ -79,8 +81,8 @@ function Agendar({ cliente, loja, servico, onVoltar, onPronto }) {
   const confirmar = async () => {
     setErro(""); setEnviando(true);
     try {
+      // `cliente_id` saiu do corpo: o servidor usa o do cookie de sessão.
       onPronto(await api.publico.agendar({
-        cliente_id: cliente.id,
         barbearia_id: loja.id,
         servico: servico.nome,
         profissional: barbeiro,
@@ -416,7 +418,7 @@ const AbaFidelidade = ({ cliente, loja }) => {
 
   useEffect(() => {
     let ativo = true;
-    api.publico.fidelidade(cliente.id, loja.id)
+    api.publico.fidelidade(loja.id)
       .then(d => { if (ativo) setDados(d); })
       .catch(() => { /* fidelidade é opcional */ });
     return () => { ativo = false; };
@@ -503,7 +505,7 @@ const AbaAvaliacoes = ({ cliente, loja, onAvaliou }) => {
   const enviar = async () => {
     setErro(""); setEnviando(true);
     try {
-      await api.publico.avaliar(cliente.id, loja.id, { nota, texto });
+      await api.publico.avaliar(loja.id, { nota, texto });
       setAberto(false); setNota(0); setTexto("");
       onAvaliou();
     } catch (e) { setErro(e.message); }
@@ -593,7 +595,7 @@ export default function Estabelecimento({ cliente, lojaId, onVoltar, onAgendado 
 
   const favoritar = async () => {
     try {
-      const { favorito } = await api.publico.favoritar(cliente.id, lojaId);
+      const { favorito } = await api.publico.favoritar(lojaId);
       setLoja(l => ({ ...l, favorito }));
     } catch (e) { setErro(e.message); }
   };
@@ -601,7 +603,6 @@ export default function Estabelecimento({ cliente, lojaId, onVoltar, onAgendado 
   if (agendando && loja) {
     return (
       <Agendar
-        cliente={cliente}
         loja={loja}
         servico={agendando}
         onVoltar={() => setAgendando(null)}

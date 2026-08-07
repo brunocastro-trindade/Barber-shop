@@ -180,6 +180,18 @@ function semear() {
 
 const espera = (ms = 120) => new Promise(r => setTimeout(r, ms));
 
+// Espelha o `exigirCliente` do servidor: nenhuma rota da área do cliente
+// aceita um id vindo de fora, nem aqui. O 401 é o mesmo que a API real
+// devolve, para a tela reagir igual nos dois modos.
+function exigirCliente(s) {
+  if (!s.clienteAtual) {
+    const e = new Error("Não autenticado");
+    e.status = 401;
+    throw e;
+  }
+  return s.clienteAtual;
+}
+
 function novoId() {
   const s = estado();
   const id = s.proximoId++;
@@ -280,9 +292,10 @@ export const apiDemo = {
     },
 
     // Tela inicial: último agendamento, favoritas e visitadas recentemente.
-    inicio: async (clienteId) => {
+    inicio: async () => {
       await espera(90);
       const s = estado();
+      const clienteId = exigirCliente(s);
       const hoje = hojeISO();
 
       const proximo = s.agendamentos
@@ -298,9 +311,10 @@ export const apiDemo = {
       };
     },
 
-    favoritar: async (clienteId, barbeariaId) => {
+    favoritar: async (barbeariaId) => {
       await espera(70);
       const s = estado();
+      exigirCliente(s);
       const id = Number(barbeariaId);
       const favs = s.favoritos || [];
       s.favoritos = favs.includes(id) ? favs.filter(x => x !== id) : [id, ...favs];
@@ -308,34 +322,51 @@ export const apiDemo = {
       return { favorito: s.favoritos.includes(id) };
     },
 
-    // Acha a ficha pelo telefone. Sem ficha e sem nome, avisa que precisa do
-    // nome — assim a tela sabe a hora de pedir o cadastro.
-    identificar: async ({ telefone, nome }) => {
+    // Acha a ficha pelo telefone e guarda quem entrou.
+    //
+    // A sessão real é um cookie assinado pelo servidor; aqui, sem servidor, o
+    // id do cliente ativo fica no estado local — é o que permite os métodos
+    // `eu*` funcionarem sem receber id por parâmetro, como no contrato real.
+    //
+    // O código de acesso é exigido para o fluxo da tela ser idêntico, mas
+    // qualquer valor serve: este módulo só roda quando a API está fora do ar e
+    // opera sobre dados fictícios, sem nada de ninguém para proteger.
+    identificar: async ({ telefone, codigo }) => {
       await espera();
       const s = estado();
       const digitos = soDigitos(telefone);
       if (digitos.length < 10) throw new Error("Digite seu WhatsApp com DDD.");
+      if (!String(codigo || "").trim()) throw new Error("Informe o código de acesso.");
 
       const existente = s.clientes.find(c => soDigitos(c.telefone) === digitos);
-      if (existente) return { ...comAgregados(existente), novo: false };
-
-      if (!nome || !nome.trim()) {
-        const e = new Error("Não encontramos seu cadastro. Informe seu nome.");
-        e.precisaNome = true;
-        throw e;
+      if (existente) {
+        s.clienteAtual = existente.id;
+        salvar();
+        return { ...comAgregados(existente), novo: false };
       }
 
-      const novo = {
-        id: novoId(),
-        nome: nome.trim(),
-        telefone: telefone.trim(),
-        tipo: "avulso",
-        obs: "",
-        barbeiro_pref: PROS[0],
-      };
-      s.clientes.push(novo);
+      // Sem auto-cadastro, igual ao servidor: quem cria a ficha do cliente é o
+      // barbeiro, no painel.
+      throw new Error("Telefone ou código incorretos. Peça o código na sua barbearia.");
+    },
+
+    eu: async () => {
+      await espera(40);
+      const s = estado();
+      const c = s.clientes.find(x => x.id === s.clienteAtual);
+      if (!c) {
+        const e = new Error("Não autenticado");
+        e.status = 401;
+        throw e;
+      }
+      return { id: c.id, nome: c.nome, tipo: c.tipo };
+    },
+
+    sair: async () => {
+      const s = estado();
+      s.clienteAtual = null;
       salvar();
-      return { ...comAgregados(novo), novo: true };
+      return { ok: true };
     },
 
     // Horários do dia numa barbearia, já marcando o que está ocupado. Com um
@@ -364,11 +395,11 @@ export const apiDemo = {
       });
     },
 
-    agendar: async ({ cliente_id, barbearia_id, servico, profissional, data, hora }) => {
+    agendar: async ({ barbearia_id, servico, profissional, data, hora }) => {
       await espera();
       const s = estado();
-      const cliente = s.clientes.find(c => c.id === cliente_id);
-      if (!cliente) throw new Error("Sessão expirada. Informe seu WhatsApp de novo.");
+      const cliente = s.clientes.find(c => c.id === exigirCliente(s));
+      if (!cliente) throw new Error("Sessão expirada. Entre de novo.");
 
       const loja = acharBarbearia(barbearia_id);
       if (!loja) throw new Error("Barbearia não encontrada.");
@@ -378,7 +409,7 @@ export const apiDemo = {
       if (!data || !hora) throw new Error("Escolha o dia e o horário.");
 
       const jaTem = s.agendamentos.some(
-        a => a.cliente_id === cliente_id && a.data === data && a.status === "Confirmado"
+        a => a.cliente_id === cliente.id && a.data === data && a.status === "Confirmado"
       );
       if (jaTem) throw new Error("Você já tem um horário marcado neste dia.");
 
@@ -414,9 +445,10 @@ export const apiDemo = {
     },
 
     // Aba Agendamentos: próximos e passados, de todas as barbearias.
-    meusHorarios: async (clienteId, { barbeariaId } = {}) => {
+    meusHorarios: async ({ barbeariaId } = {}) => {
       await espera();
       const s = estado();
+      const clienteId = exigirCliente(s);
       const hoje = hojeISO();
       const cliente = s.clientes.find(c => c.id === clienteId);
       const doFiltro = (r) => !barbeariaId || (r.barbearia_id || CASA) === Number(barbeariaId);
@@ -458,9 +490,10 @@ export const apiDemo = {
       };
     },
 
-    cancelar: async (clienteId, id) => {
+    cancelar: async (id) => {
       await espera();
       const s = estado();
+      const clienteId = exigirCliente(s);
       const a = s.agendamentos.find(x => x.id === id && x.cliente_id === clienteId);
       if (!a) throw new Error("Horário não encontrado.");
       a.status = "Cancelado";
@@ -470,9 +503,10 @@ export const apiDemo = {
 
     // Fidelidade: 1 ponto por real gasto na barbearia. Simples de explicar no
     // balcão e suficiente para a tela ter o que mostrar.
-    fidelidade: async (clienteId, barbeariaId) => {
+    fidelidade: async (barbeariaId) => {
       await espera(80);
       const s = estado();
+      const clienteId = exigirCliente(s);
       const id = Number(barbeariaId);
       const minhas = s.visitas.filter(v => v.cliente_id === clienteId && (v.barbearia_id || CASA) === id);
       const pontos = Math.round(minhas.reduce((soma, v) => soma + v.valor, 0));
@@ -486,9 +520,10 @@ export const apiDemo = {
       return { pontos, visitas: minhas.length, premios };
     },
 
-    avaliar: async (clienteId, barbeariaId, { nota, texto }) => {
+    avaliar: async (barbeariaId, { nota, texto }) => {
       await espera();
       const s = estado();
+      const clienteId = exigirCliente(s);
       const cliente = s.clientes.find(c => c.id === clienteId);
       if (!cliente) throw new Error("Sessão expirada.");
       if (!nota) throw new Error("Escolha de 1 a 5 estrelas.");

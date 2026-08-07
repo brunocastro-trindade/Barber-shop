@@ -85,6 +85,17 @@ create index if not exists produtos_barbeiro_idx on produtos (barbeiro_id, nome)
 
 -- ── Clientes ──────────────────────────────────────────────────────────────────
 
+-- `codigo_acesso` é a senha do cliente na área pública.
+--
+-- Existe porque não há canal de verificação (WhatsApp/SMS) no projeto: sem ele,
+-- o telefone seria a única credencial, e quem soubesse o número entraria como o
+-- cliente. Como o barbeiro cadastra cada cliente à mão, o código nasce junto com
+-- a ficha e é entregue pessoalmente — a prova de posse acontece no balcão, não
+-- por mensagem.
+--
+-- Não é hash: é um código curto, descartável e visível ao barbeiro na ficha (ele
+-- precisa poder ler para ditar). O que ele protege é o histórico do cliente, e o
+-- custo de trocá-lo é zero. Se um dia guardar algo mais sensível, vira hash.
 create table if not exists clientes (
   id            uuid primary key default gen_random_uuid(),
   barbeiro_id   uuid        not null references barbeiros(id) on delete cascade,
@@ -93,6 +104,7 @@ create table if not exists clientes (
   tipo          text        not null default 'avulso' check (tipo in ('assinante', 'avulso')),
   obs           text        not null default '',
   equipe_pref   uuid        references equipe(id) on delete set null,
+  codigo_acesso text        not null default '',
   criado_em     timestamptz not null default now()
 );
 
@@ -256,4 +268,40 @@ create table if not exists avaliacoes (
 );
 
 create index if not exists avaliacoes_barbeiro_idx on avaliacoes (barbeiro_id, criado_em desc);
+
+-- ── Ajustes incrementais ──────────────────────────────────────────────────────
+--
+-- `create table if not exists` não mexe em tabela que já existe: bancos criados
+-- antes destas colunas precisam do ALTER. Tudo aqui é idempotente e roda depois
+-- das tabelas, na mesma passada do `npm run db:migrate`.
+
+-- Código de acesso do cliente à área pública (ver comentário em `clientes`).
+alter table clientes add column if not exists codigo_acesso text not null default '';
+
+-- Fichas antigas nasceram sem código. Gera um para cada uma, no mesmo alfabeto
+-- sem ambiguidade usado pelo servidor (server/codigoAcesso.js): sem O/0/I/1.
+update clientes
+   set codigo_acesso = (
+     select string_agg(
+       substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+              1 + floor(random() * 32)::int, 1), '')
+     from generate_series(1, 6)
+   )
+ where codigo_acesso = '';
+
+-- Login público: telefone só com dígitos + código.
+create index if not exists clientes_acesso_idx
+  on clientes (regexp_replace(telefone, '\D', '', 'g'), codigo_acesso);
+
+-- Uma avaliação por cliente em cada barbearia. Sem isto, a mesma pessoa
+-- reavalia em laço e move a média pública da barbearia sozinha.
+-- Duplicatas anteriores: mantém a mais recente e apaga o resto.
+delete from avaliacoes a
+ using avaliacoes b
+ where a.cliente_id = b.cliente_id
+   and a.barbeiro_id = b.barbeiro_id
+   and (a.criado_em, a.id) < (b.criado_em, b.id);
+
+create unique index if not exists avaliacoes_cliente_barbeiro_uk
+  on avaliacoes (cliente_id, barbeiro_id);
 

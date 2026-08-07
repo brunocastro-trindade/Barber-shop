@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, Phone, Trash2, X } from "lucide-react";
+import { CheckCircle, Copy, KeyRound, Phone, RefreshCw, Trash2, X } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import { dataCurta, emReais, emReaisCurto, paraNumero } from "../lib/formato.js";
@@ -7,6 +7,51 @@ import { opcoes, somente, TIPO_CLIENTE } from "../lib/dominio.js";
 import { useRecurso } from "../lib/useRecurso.js";
 import { B, N } from "../ui/tokens.js";
 import { Avatar, Aviso, Badge, Btn, Card, Carregando, Col, Field, PH, Row, Stat, Vazio } from "../ui/base.jsx";
+
+// ── Código de acesso ──────────────────────────────────────────────────────────
+//
+// É a senha do cliente na área pública, e quem a entrega é o barbeiro — não há
+// envio automático por WhatsApp no sistema. Por isso o código fica visível e
+// grande aqui: ele precisa ser ditado ou copiado no balcão.
+function CodigoAcesso({ cliente, salvando, onAcao }) {
+  const [copiado, setCopiado] = useState(false);
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(cliente.codigo_acesso || "");
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1800);
+    } catch { /* sem permissão de área de transferência */ }
+  };
+
+  return (
+    <Card title="Código de acesso do cliente">
+      <Row gap={10} style={{ alignItems: "center" }}>
+        <KeyRound size={16} strokeWidth={1.8} color={N.color} />
+        <span style={{
+          fontSize: 21, fontWeight: 800, letterSpacing: "0.22em",
+          color: B.text, fontVariantNumeric: "tabular-nums", flex: 1,
+        }}>
+          {cliente.codigo_acesso || "—"}
+        </span>
+        <Btn sm color={N.color} onClick={copiar} disabled={!cliente.codigo_acesso}>
+          {copiado ? <CheckCircle size={12} strokeWidth={1.8} /> : <Copy size={12} strokeWidth={1.8} />}
+          {copiado ? "Copiado" : "Copiar"}
+        </Btn>
+        <Btn sm disabled={salvando}
+          onClick={() => onAcao(() => api.clientes.novoCodigo(cliente.id))}>
+          <RefreshCw size={12} strokeWidth={1.8} /> Gerar novo
+        </Btn>
+      </Row>
+      <p style={{ fontSize: 11, color: B.muted, lineHeight: 1.6, margin: "10px 0 0" }}>
+        Passe este código ao cliente para ele acompanhar os horários dele pelo
+        aplicativo. Ele entra com o telefone <strong>e</strong> o código — é o que
+        impede outra pessoa de abrir o histórico dele. Gerar um novo invalida o
+        anterior na hora.
+      </p>
+    </Card>
+  );
+}
 
 // ── Ficha do cliente ──────────────────────────────────────────────────────────
 export const FichaCliente = () => {
@@ -179,17 +224,21 @@ const DetalheCliente = ({ cliente, servicos, equipe, salvando, erro, onLimparErr
       </Row>
 
       <Row gap={10} style={{ alignItems: "flex-start" }}>
-        <Card title="Preferências de corte" style={{ flex: 1 }}>
-          <Field label="OBSERVAÇÕES" type="textarea" value={obs} onChange={setObs} placeholder="Como ele gosta do corte..." />
-          <Field label="BARBEIRO PREFERIDO" type="select" value={pref} onChange={setPref}
-            placeholder="Sem preferência" options={opcoes(equipe)} />
-          <div style={{ marginTop: 12 }}>
-            <Btn color={N.color} disabled={salvando}
-              onClick={() => onAcao(() => api.clientes.atualizar(cliente.id, { obs, equipe_pref: pref || null }))}>
-              {salvando ? "Salvando..." : "Salvar preferências"}
-            </Btn>
-          </div>
-        </Card>
+        <Col gap={10} style={{ flex: 1 }}>
+          <CodigoAcesso cliente={cliente} salvando={salvando} onAcao={onAcao} />
+
+          <Card title="Preferências de corte">
+            <Field label="OBSERVAÇÕES" type="textarea" value={obs} onChange={setObs} placeholder="Como ele gosta do corte..." />
+            <Field label="BARBEIRO PREFERIDO" type="select" value={pref} onChange={setPref}
+              placeholder="Sem preferência" options={opcoes(equipe)} />
+            <div style={{ marginTop: 12 }}>
+              <Btn color={N.color} disabled={salvando}
+                onClick={() => onAcao(() => api.clientes.atualizar(cliente.id, { obs, equipe_pref: pref || null }))}>
+                {salvando ? "Salvando..." : "Salvar preferências"}
+              </Btn>
+            </div>
+          </Card>
+        </Col>
 
         <Col gap={10} style={{ flex: 1 }}>
           <Card title="Histórico de Visitas">

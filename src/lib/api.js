@@ -100,6 +100,9 @@ export const api = {
     criar: (dados) => post("/clientes", dados),
     atualizar: (id, dados) => patch(`/clientes/${id}`, dados),
     remover: (id) => remove(`/clientes/${id}`),
+    // Troca o código de acesso do cliente à área pública. Serve para quando ele
+    // perde o código ou quando alguém que não devia viu.
+    novoCodigo: (id) => post(`/clientes/${id}/codigo`),
     visitas: (id) => get(`/clientes/${id}/visitas`),
     registrarVisita: (id, dados) => post(`/clientes/${id}/visitas`, dados),
     removerVisita: (id, visitaId) => remove(`/clientes/${id}/visitas/${visitaId}`),
@@ -140,28 +143,30 @@ export const api = {
     pagar: (id) => post(`/assinaturas/${id}/pagar`),
     cancelar: (id) => post(`/assinaturas/${id}/cancelar`),
   },
-  // Área do cliente da barbearia. Rotas públicas: quem chama é o cliente
-  // final, identificado só pelo telefone — não há cookie de dono aqui.
-  // O servidor ainda não expõe estas rotas, então na prática hoje todas caem
-  // na demonstração; quando o backend existir, elas passam a valer sozinhas.
+  // Área do cliente da barbearia.
+  //
+  // O cliente entra com telefone + código de acesso (que o barbeiro entrega no
+  // balcão) e recebe um cookie de sessão assinado, igual ao do dono. Por isso
+  // nenhum método aqui recebe `clienteId`: o servidor tira a identidade do
+  // cookie. Enquanto o id andava na URL, quem tivesse um id lia o histórico e
+  // cancelava agendamentos de qualquer pessoa.
   publico: comQuedaParaDemo({
     barbearias: ({ termo = "", modo = "nome" } = {}) =>
       get(`/publico/barbearias?termo=${encodeURIComponent(termo)}&modo=${modo}`),
     barbearia: (id, { registrarAcesso = false } = {}) =>
       get(`/publico/barbearias/${id}${registrarAcesso ? "?acesso=1" : ""}`),
-    inicio: (clienteId) => get(`/publico/clientes/${clienteId}/inicio`),
-    favoritar: (clienteId, barbeariaId) =>
-      post(`/publico/clientes/${clienteId}/favoritos/${barbeariaId}`),
     identificar: (dados) => post("/publico/identificar", dados),
+    eu: () => get("/publico/eu"),
+    sair: () => post("/publico/sair"),
+    inicio: () => get("/publico/eu/inicio"),
+    favoritar: (barbeariaId) => post(`/publico/eu/favoritos/${barbeariaId}`),
     horariosDoDia: (barbeariaId, data, profissional) =>
       get(`/publico/barbearias/${barbeariaId}/horarios?data=${data}&profissional=${encodeURIComponent(profissional || "")}`),
     agendar: (dados) => post("/publico/agendar", dados),
-    meusHorarios: (clienteId, filtro) =>
-      get(`/publico/clientes/${clienteId}/horarios?barbearia=${filtro?.barbeariaId || ""}`),
-    cancelar: (clienteId, id) => post(`/publico/clientes/${clienteId}/horarios/${id}/cancelar`),
-    fidelidade: (clienteId, barbeariaId) =>
-      get(`/publico/clientes/${clienteId}/fidelidade/${barbeariaId}`),
-    avaliar: (clienteId, barbeariaId, dados) =>
-      post(`/publico/clientes/${clienteId}/avaliacoes/${barbeariaId}`, dados),
+    meusHorarios: (filtro) =>
+      get(`/publico/eu/horarios?barbearia=${filtro?.barbeariaId || ""}`),
+    cancelar: (id) => post(`/publico/eu/horarios/${id}/cancelar`),
+    fidelidade: (barbeariaId) => get(`/publico/eu/fidelidade/${barbeariaId}`),
+    avaliar: (barbeariaId, dados) => post(`/publico/eu/avaliacoes/${barbeariaId}`, dados),
   }, apiDemo.publico),
 };
