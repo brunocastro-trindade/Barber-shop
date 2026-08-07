@@ -42,6 +42,11 @@ const email = `smoke-${Date.now()}@teste.local`;
 let barbeiroId = null;
 
 try {
+  // O rate limit agora vive no banco e sobrevive a restart (server/limiteStore.js).
+  // Sem zerar o balde deste IP, rodar o smoke duas vezes seguidas estoura o
+  // limite de /api/auth e as asserções falham por 429 sem nada estar quebrado.
+  await sql`delete from limites_uso where chave like 'ip:%'`;
+
   console.log("\n── Cadastro direto (SaaS) ─────────────────────────────────");
   const cadastro = await chamar("POST", "/auth/register", {
     nome: "Dono Teste", barbearia: "Barbearia Fumaça",

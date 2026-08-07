@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -31,20 +32,73 @@ const app = express();
 const proxies = Number(process.env.TRUST_PROXY) || 0;
 if (proxies > 0) app.set("trust proxy", proxies);
 
+const emProducao = process.env.NODE_ENV === "production";
+
+// Configuração exigida em produção, conferida ANTES de aceitar a primeira
+// requisição. Subir sem NODE_ENV=production deixa o cookie de sessão sem a
+// marca `secure` (ver server/auth.js) e ele trafega em HTTP puro — o tipo de
+// erro que ninguém percebe até alguém interceptar.
+if (!emProducao) {
+  console.warn(
+    "\n[ControlCRM] ATENÇÃO: NODE_ENV não é 'production'.\n" +
+    "  O cookie de sessão está SEM a marca `secure` e trafega em HTTP puro.\n" +
+    "  Isso é esperado em desenvolvimento. Em produção, defina NODE_ENV=production.\n"
+  );
+} else if (proxies === 0) {
+  console.warn(
+    "\n[ControlCRM] ATENÇÃO: rodando em produção com TRUST_PROXY=0.\n" +
+    "  Se houver um proxy reverso na frente, todos os visitantes chegam com o\n" +
+    "  IP dele e dividem o mesmo limite de requisições. Use TRUST_PROXY=1.\n"
+  );
+}
+
+// Cabeçalhos de segurança.
+//
+// A CSP é montada à mão porque a padrão do helmet quebraria a aplicação: o
+// front usa estilos inline em quase todo componente (ver src/ui/base.jsx) e
+// carrega fonte do Google. Liberar exatamente isso, e nada mais, vale mais do
+// que desligar a CSP inteira.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // 'unsafe-inline' aqui é inevitável enquanto o estilo for inline no JSX.
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      frameAncestors: ["'none'"],   // ninguém embute esta aplicação num iframe
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: emProducao ? [] : null,
+    },
+  },
+  // O front carrega imagens do Unsplash; a política padrão (same-origin) as
+  // bloquearia.
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  // HSTS só faz sentido sob HTTPS de verdade.
+  hsts: emProducao ? { maxAge: 15552000, includeSubDomains: true } : false,
+}));
+
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // Limites de requisições por IP contra abusos e força bruta
-const limitAuth = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 20, mensagem: "Muitas tentativas de login/cadastro. Aguarde 15 minutos." });
-const limitPublico = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 120, mensagem: "Muitas requisições públicas. Aguarde 15 minutos." });
+// `escopo` separa os baldes: sem ele, as três rotas dividiriam a mesma chave no
+// banco e o limite mais apertado derrubaria os outros dois.
+const limitAuth = criarRateLimit({ escopo: "auth", janelaMs: 15 * 60 * 1000, max: 20, mensagem: "Muitas tentativas de login/cadastro. Aguarde 15 minutos." });
+const limitPublico = criarRateLimit({ escopo: "publico", janelaMs: 15 * 60 * 1000, max: 120, mensagem: "Muitas requisições públicas. Aguarde 15 minutos." });
 
 // Adivinhar o código de acesso é o único ataque restante contra a área do
 // cliente, então esta rota tem limite próprio e bem mais apertado que o resto
 // do /api/publico. São ~1 bilhão de códigos possíveis; a 10 tentativas por
 // quarto de hora, tentar 0,001% do espaço já levaria séculos.
-const limitIdentificar = criarRateLimit({ janelaMs: 15 * 60 * 1000, max: 10, mensagem: "Muitas tentativas de acesso. Aguarde 15 minutos." });
+const limitIdentificar = criarRateLimit({ escopo: "identificar", janelaMs: 15 * 60 * 1000, max: 10, mensagem: "Muitas tentativas de acesso. Aguarde 15 minutos." });
 
 // Login, cadastro e área do cliente são as rotas abertas (públicas).
 app.use("/api/auth", limitAuth, authRoutes);
@@ -79,19 +133,58 @@ if (fs.existsSync(dist)) {
 
 // Erros não tratados viram 500 genérico: o detalhe fica no log do servidor, não
 // na resposta, para não vazar estrutura do banco.
+//
+// O log sai em JSON de uma linha para ser pesquisável no agregador da
+// plataforma. `console.error(err)` despejava a stack em várias linhas, que a
+// maioria dos coletores quebra em eventos separados e ninguém consegue
+// correlacionar depois.
 app.use((err, req, res, next) => {
-  console.error("[api]", err);
+  console.error(JSON.stringify({
+    nivel: "erro",
+    metodo: req.method,
+    caminho: req.originalUrl,
+    msg: err?.message,
+    stack: err?.stack?.split("\n").slice(0, 4).join(" | "),
+  }));
   if (res.headersSent) return next(err);
   res.status(500).json({ erro: "Erro interno do servidor." });
 });
 
 const porta = Number(process.env.PORT) || 3001;
-app.listen(porta, () => {
-  console.log(`[ControlCRM] API em http://localhost:${porta}`);
+const servidor = app.listen(porta, () => {
+  console.log(JSON.stringify({
+    nivel: "info",
+    msg: "API no ar",
+    porta,
+    ambiente: process.env.NODE_ENV || "development",
+    trustProxy: proxies,
+  }));
 });
 
-// Garante que o processo da API continue ativo em ambiente dev/Windows (Node 24)
-if (process.stdin.isTTY || process.stdout.isTTY) {
-  process.stdin.resume();
-}
-setInterval(() => {}, 1000 * 60 * 60);
+// Encerramento gracioso.
+//
+// Aqui existiam um `process.stdin.resume()` e um `setInterval` vazio de uma
+// hora, postos para o processo não morrer no terminal do Windows. O efeito
+// colateral em produção era grave: o orquestrador manda SIGTERM ao trocar de
+// versão, o processo NÃO saía por causa do timer, e levava SIGKILL alguns
+// segundos depois — no meio das requisições em voo.
+//
+// Um servidor HTTP escutando já segura o event loop sozinho; a muleta era
+// desnecessária. Agora o SIGTERM fecha a porta, espera o que está em voo
+// terminar, e sai.
+const encerrar = (sinal) => {
+  console.log(JSON.stringify({ nivel: "info", msg: "encerrando", sinal }));
+  servidor.close(() => {
+    console.log(JSON.stringify({ nivel: "info", msg: "encerrado" }));
+    process.exit(0);
+  });
+  // Rede de segurança: se alguma conexão não fechar, não ficamos pendurados
+  // para sempre.
+  setTimeout(() => {
+    console.error(JSON.stringify({ nivel: "erro", msg: "encerramento forcado apos 10s" }));
+    process.exit(1);
+  }, 10_000).unref();
+};
+
+process.on("SIGTERM", () => encerrar("SIGTERM"));
+process.on("SIGINT", () => encerrar("SIGINT"));

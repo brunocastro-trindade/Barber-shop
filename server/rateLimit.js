@@ -1,23 +1,21 @@
-// Middleware leve de rate limiting por IP sem dependências externas.
-// Protege a API contra ataques de força bruta, spam de requisições e consumo excessivo de recursos.
+// Rate limiting por IP, com a contagem compartilhada no banco.
+//
+// Protege a API contra força bruta, spam de requisições e consumo excessivo.
+// A contagem vive em `limites_uso` (ver server/limiteStore.js), e não num Map
+// deste processo: com mais de uma instância, um Map por processo faria o limite
+// real ser N vezes o configurado.
+
+import { registrar } from "./limiteStore.js";
 
 export function criarRateLimit({
   janelaMs = 15 * 60 * 1000,
   max = 100,
+  escopo = "geral",
   mensagem = "Muitas requisições deste IP. Tente novamente em alguns minutos.",
 } = {}) {
-  const conexoes = new Map();
+  const janelaSegundos = Math.ceil(janelaMs / 1000);
 
-  // Limpeza periódica de IPs expirados a cada 5 minutos
-  const timer = setInterval(() => {
-    const agora = Date.now();
-    for (const [ip, reg] of conexoes.entries()) {
-      if (agora > reg.expiraEm) conexoes.delete(ip);
-    }
-  }, 5 * 60 * 1000);
-  if (timer.unref) timer.unref();
-
-  return (req, res, next) => {
+  return async (req, res, next) => {
     // `req.ip` e NÃO o header X-Forwarded-For cru.
     //
     // Ler o header direto tornava este limitador decorativo: qualquer um manda
@@ -28,21 +26,18 @@ export function criarRateLimit({
     // cliente não escolhe.
     const ip = req.ip || req.socket?.remoteAddress || "127.0.0.1";
 
-    const agora = Date.now();
-    const reg = conexoes.get(ip) || { contagem: 0, expiraEm: agora + janelaMs };
+    try {
+      const { contagem, faltamSegundos } = await registrar(`ip:${escopo}:${ip}`, janelaSegundos);
 
-    if (agora > reg.expiraEm) {
-      reg.contagem = 1;
-      reg.expiraEm = agora + janelaMs;
-    } else {
-      reg.contagem += 1;
-    }
-
-    conexoes.set(ip, reg);
-
-    if (reg.contagem > max) {
-      res.setHeader("Retry-After", Math.ceil(janelaMs / 1000));
-      return res.status(429).json({ erro: mensagem });
+      if (contagem > max) {
+        res.setHeader("Retry-After", Math.max(1, faltamSegundos));
+        return res.status(429).json({ erro: mensagem });
+      }
+    } catch (e) {
+      // Banco fora do ar: deixa passar em vez de derrubar a aplicação inteira.
+      // A alternativa seria recusar tudo — e sem banco a requisição vai falhar
+      // adiante de qualquer jeito, com uma mensagem melhor do que "429".
+      console.error(JSON.stringify({ nivel: "erro", onde: "rateLimit", msg: e.message }));
     }
 
     next();

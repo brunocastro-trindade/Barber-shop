@@ -52,7 +52,7 @@ router.post("/login", async (req, res) => {
   // Bloqueio antes de tocar no banco: nem consulta, nem compara hash. Além de
   // barrar a adivinhação, evita gastar bcrypt (que é caro de propósito) com
   // quem já estourou o limite.
-  const minutos = minutosDeBloqueio(email);
+  const minutos = await minutosDeBloqueio(email);
   if (minutos > 0) {
     return res.status(429).json({
       erro: `Muitas tentativas. Tente novamente em ${minutos} minuto${minutos > 1 ? "s" : ""}.`,
@@ -69,13 +69,13 @@ router.post("/login", async (req, res) => {
   // atacante quais e-mails estão cadastrados.
   const ok = barbeiro && (await bcrypt.compare(senha, barbeiro.senha_hash));
   if (!ok) {
-    registrarFalha(email);
+    await registrarFalha(email);
     return res.status(401).json({ erro: "E-mail ou senha incorretos." });
   }
 
   // Entrou: a contagem zera, para um erro de digitação de ontem não somar com o
   // de hoje.
-  limparTentativas(email);
+  await limparTentativas(email);
   criarSessao(res, barbeiro.id);
   res.json(publico(barbeiro));
 });

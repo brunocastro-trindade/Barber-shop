@@ -322,6 +322,27 @@ delete from avaliacoes a
 create unique index if not exists avaliacoes_cliente_barbeiro_uk
   on avaliacoes (cliente_id, barbeiro_id);
 
+-- ── Limites de uso (rate limit e bloqueio de login) ───────────────────────────
+--
+-- Estes contadores viviam em `Map` na memória do processo. Funcionava com UMA
+-- instância e mais nada: com duas, cada processo tinha a sua contagem e o
+-- limite real virava o dobro do configurado; um restart zerava tudo, e quem
+-- estava sendo barrado voltava a tentar do zero.
+--
+-- No banco, as instâncias compartilham a mesma contagem e o limite volta a ser
+-- o que está escrito. O preço é uma ida ao banco por requisição limitada — vale
+-- a pena porque é justamente sob ataque que o limite precisa estar certo.
+--
+-- `chave` carrega o escopo no prefixo: 'ip:<rota>:<ip>' ou 'login:<email>'.
+create table if not exists limites_uso (
+  chave     text        primary key,
+  contagem  int         not null default 0,
+  expira_em timestamptz not null
+);
+
+-- Para a limpeza periódica varrer só o que venceu.
+create index if not exists limites_uso_expira_idx on limites_uso (expira_em);
+
 -- ── Unidades e o teto de funcionários ─────────────────────────────────────────
 --
 -- A ORDEM aqui não é acidental. A coluna e o backfill vêm ANTES da trigger de

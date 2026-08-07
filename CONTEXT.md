@@ -101,6 +101,58 @@ não era o que a fase de validação pedia. O vínculo indireto existe — um
 agendamento aponta para um `equipe_id`, e aquele funcionário pertence a uma
 unidade —, então o dado necessário para essa separação futura já está no lugar.
 
+## Deploy
+
+### Variáveis obrigatórias
+
+| Variável | Valor | Por quê |
+| --- | --- | --- |
+| `DATABASE_URL` | connection string do Neon | sem ela o processo sai no start |
+| `JWT_SECRET` | 32+ caracteres aleatórios | assina o cookie; trocar desconecta todo mundo |
+| `NODE_ENV` | `production` | **liga o `secure` do cookie e o HSTS** |
+| `TRUST_PROXY` | `1` atrás de um proxy | sem isso todos compartilham o mesmo balde de rate limit |
+| `PORT` | a que a plataforma injetar | |
+
+O servidor **avisa em voz alta no start** quando `NODE_ENV` não é `production`,
+ou quando está em produção com `TRUST_PROXY=0`. Se esses avisos aparecerem no
+log de produção, a configuração está errada.
+
+### Ordem do deploy
+
+```bash
+npm ci            # NÃO `npm install` — respeita o package-lock, que é o que
+                  # você testou. As dependências estão com ^ e um install
+                  # solto pode trazer minor diferente.
+npm run build     # gera dist/, que o próprio servidor serve
+npm run release   # aplica db/schema.sql — FASE DE RELEASE, antes do start
+npm start
+```
+
+`npm run release` é idempotente e não apaga dados. Precisa rodar **antes** do
+processo subir: sem ele a aplicação sobe e quebra na primeira consulta.
+
+O front e a API são o mesmo processo — `server/index.js` serve o `dist/` quando
+ele existe. Um container só, sem CDN separada.
+
+### O que muda em produção
+
+- Cookie de sessão com `secure`, HSTS de 180 dias.
+- CSP restritiva, montada à mão em `server/index.js`. **Ela permite
+  `style-src 'unsafe-inline'`** porque o front usa estilo inline em quase todo
+  componente; ao trocar isso por CSS de verdade, aperte a diretiva junto.
+  `frame-ancestors 'none'` impede que a aplicação seja embutida em iframe.
+- Log em JSON de uma linha, para o agregador da plataforma conseguir indexar.
+- `SIGTERM` fecha a porta, espera as requisições em voo e sai (10s de teto).
+
+### Escalar para mais de uma instância
+
+Pode. Rate limit e bloqueio de login vivem na tabela `limites_uso`
+(`server/limiteStore.js`), compartilhada entre as instâncias — antes eram `Map`
+em memória, e o limite real virava N vezes o configurado.
+
+O preço é uma ida ao banco por requisição limitada. Só as rotas sensíveis
+(`/api/auth`, `/api/publico`) passam por lá.
+
 ## Como verificar qualquer mudança
 
 ```bash
