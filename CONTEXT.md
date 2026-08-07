@@ -190,21 +190,70 @@ Dos 70 achados `high` do scanner, a apuração descartou como falso positivo:
 - **9 `exfiltration_shape`** — `.post(` em exemplos de Express dentro de CSVs.
 - **1235 `layout.long_line`** — linhas de dados em CSV.
 
-O que sobrou como real, e segue **aceito**:
+O que sobrou como real:
 
-- `design/scripts/{logo,icon,cip}/generate.py` carregam `~/.claude/.env` e
+- `design/scripts/{logo,icon,cip}/generate.py` carregavam `~/.claude/.env` e
   `~/.claude/skills/.env` **inteiros** para `os.environ`, embora só usem
-  `GEMINI_API_KEY`. Uso coerente com o propósito; carregamento amplo demais.
+  `GEMINI_API_KEY`. **Mitigado** — ver a seção abaixo.
 - `ui-styling/scripts/shadcn_add.py` executa `npx shadcn@<versão> add` — baixa e
   roda código remoto em runtime. É o propósito declarado, mas é supply chain.
-- 3 `.pyc` em `__pycache__` — binários não auditáveis, regeneráveis, descartáveis.
+  Segue **aceito**.
+- `.pyc` em `__pycache__` — binários não auditáveis. **Removidos.**
 - `ui-ux-pro-max/SKILL.md` tem ~460 caracteres em chinês (1% do arquivo).
   Procurei diretivas imperativas ali (sobrescrever, executar, silenciar, chave,
-  enviar) — não há nenhuma. Fica como nota de auditabilidade.
+  enviar) — não há nenhuma. Fica como nota de auditabilidade. **Aceito.**
 
 As skills **não estão no git** (`.gitignore`), vieram de
 `npx -p ui-ux-pro-max-cli uipro init --ai claude`. O conteúdo local está limpo,
 mas uma atualização futura não estará auditada.
+
+## Mitigações aplicadas nas skills — e por que elas são frágeis
+
+> **Estas mudanças não estão versionadas e somem na próxima reinstalação.**
+> `.claude/skills/` está no `.gitignore` (só `code-review-graph/` é exceção).
+> Rodar `npx -p ui-ux-pro-max-cli uipro init` de novo, ou qualquer atualização
+> das skills, **sobrescreve tudo abaixo sem avisar.** Quem atualizar precisa
+> reaplicar. É por isso que este registro existe.
+
+### 1. Lista de permissão no `load_env()` da skill `design`
+
+Nos três `scripts/{cip,icon,logo}/generate.py`, o carregamento do `.env` deixou
+de ser irrestrito:
+
+```python
+CHAVES_PERMITIDAS = {"GEMINI_API_KEY", "GOOGLE_API_KEY"}
+...
+key, value = line.split("=", 1)
+key = key.strip()
+if key in CHAVES_PERMITIDAS and key not in os.environ:
+    os.environ[key] = value.strip('"\'')
+```
+
+Antes, qualquer chave presente naqueles arquivos entrava no ambiente do
+processo. Agora só as duas que os scripts de fato consomem. Os caminhos lidos
+continuam os mesmos e nenhum deles alcança o `.env.local` deste projeto.
+
+### 2. Bytecode removido
+
+Apagados os `__pycache__/` sob `.claude/skills/`. Todos os `.pyc` tinham o `.py`
+correspondente ao lado, então são regeneráveis. Um `.pyc` é binário: não dá para
+auditar lendo, e um adulterado pode divergir do `.py` que está ao lado.
+
+### 3. Como reauditar
+
+```bash
+# Windows: use `python`, não `python3`. PYTHONIOENCODING evita o crash de
+# console ao imprimir caracteres não-ASCII (cp1252).
+set PYTHONIOENCODING=utf-8
+python %USERPROFILE%\.claude\skills\skill-auditor\scripts\scan_skill.py .claude\skills\<nome> --json rel.json
+```
+
+**Não leia a contagem de achados como medida de risco.** O scanner casa padrões
+de texto: a mitigação 1 mudou o comportamento e a contagem de
+`capability.credential_access` não caiu — os literais `.env` e `GEMINI_API_KEY`
+continuam no arquivo, e a própria linha de mitigação contém um deles. O scanner
+também **ignora `__pycache__`**, então os `.pyc` nunca apareceram no inventário
+dele. Julgue pelo diff e pelo alcance, nunca pelo número.
 
 ## O que já estava certo e deve ser preservado
 
