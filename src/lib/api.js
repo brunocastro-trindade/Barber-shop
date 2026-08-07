@@ -131,7 +131,21 @@ export const api = {
   // ── Cadastros da barbearia ──────────────────────────────────────────────────
   // Estas rotas já existiam no servidor e ficaram sem uso enquanto as telas
   // guardavam o catálogo em memória.
+  // `equipe` segue o mesmo formato dos cadastros, mas cada funcionário carrega
+  // `unidade_id` — criar sem informar cai na unidade mais antiga da conta.
+  // Estourar o teto da unidade responde 409 com a mensagem pronta.
   equipe: cadastro("/equipe"),
+
+  // Devolve { limitePorUnidade, unidades: [{ ..., funcionarios, vagas }] }.
+  // O limite vem do banco (cc_limite_equipe_por_unidade), não de um número
+  // repetido no front — ver server/limites.js.
+  unidades: {
+    listar: () => get("/unidades"),
+    criar: (dados) => post("/unidades", dados),
+    atualizar: (id, dados) => patch(`/unidades/${id}`, dados),
+    remover: (id) => remove(`/unidades/${id}`),
+  },
+
   servicos: cadastro("/servicos"),
   produtos: cadastro("/produtos"),
   despesas: cadastro("/despesas"),

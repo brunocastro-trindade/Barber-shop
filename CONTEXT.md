@@ -39,6 +39,68 @@ regra porque foram as duas coisas que a auditoria encontrou quebradas.
 
 ---
 
+## Workflow do produto — quem compra, quem trabalha
+
+```
+  PESSOA COMPRA O SaaS
+          │
+          ▼
+  ┌───────────────────┐   1 conta = 1 dono, e é o dono quem faz login.
+  │  CONTA (barbeiro) │   Funcionário NÃO tem acesso ao sistema.
+  └─────────┬─────────┘
+            │  1..N
+            ▼
+  ┌───────────────────┐   Filial / loja física. Toda conta nasce com a
+  │     UNIDADE       │   "Unidade principal"; dá para criar outras.
+  └─────────┬─────────┘
+            │  0..3   ◄── TETO DA FASE DE VALIDAÇÃO
+            ▼
+  ┌───────────────────┐   Cadastrado à mão pelo dono, na tela Equipe.
+  │   FUNCIONÁRIO     │   Só conta quem está ATIVO.
+  └───────────────────┘
+```
+
+### As regras, e o porquê de cada uma
+
+**O teto é 3 funcionários ativos por UNIDADE, não por conta.** Uma rede com três
+lojas tem direito a nove pessoas — três em cada. Precisando de mais gente numa
+loja só, a saída é o plano maior, não uma unidade fictícia.
+
+**Só conta quem está ativo.** Desativar quem saiu libera a vaga na hora, sem
+apagar o histórico dele. Reativar alguém quando a unidade já está cheia é
+recusado, pela mesma trava.
+
+**O número mora no banco, em um lugar só.** A função
+`cc_limite_equipe_por_unidade()` (em `db/schema.sql`) retorna `3`, e a trigger
+`equipe_limite_por_unidade` o impõe. A API lê esse valor por
+`server/limites.js`; o front recebe em `GET /api/unidades` como
+`limitePorUnidade`. **Não escreva `3` em nenhum outro lugar** — um limite
+repetido vira dois limites diferentes no dia em que alguém mudar só um, e a
+tela passa a prometer vaga que o banco recusa.
+
+**Para mudar o teto, mude a função e rode `npm run db:migrate`.** Nada mais.
+
+**A trava é do banco, não da rota.** A rota checa antes só para dar mensagem
+decente; quem decide é a trigger, que trava a linha da unidade (`for update`)
+antes de contar. Sem isso, dois cadastros simultâneos passariam os dois pela
+contagem e a quarta pessoa entraria.
+
+**Contas que já passavam do teto foram preservadas.** A migração cria a coluna e
+faz o backfill ANTES de criar a trigger, de propósito: quem já tinha mais gente
+mantém todo mundo e só é impedido de crescer.
+
+### O que continua sendo por CONTA, não por unidade
+
+Agenda, fila, clientes, serviços, estoque, financeiro e assinaturas seguem
+filtrados por `barbeiro_id` — **não** por unidade. Só a equipe é organizada por
+unidade nesta fase.
+
+Isso é escolha, não pendência esquecida: mover tudo para unidade é uma
+re-arquitetura grande, que toca praticamente todas as consultas do sistema, e
+não era o que a fase de validação pedia. O vínculo indireto existe — um
+agendamento aponta para um `equipe_id`, e aquele funcionário pertence a uma
+unidade —, então o dado necessário para essa separação futura já está no lugar.
+
 ## Como verificar qualquer mudança
 
 ```bash

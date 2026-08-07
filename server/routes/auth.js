@@ -34,7 +34,12 @@ router.post("/register", async (req, res) => {
     returning id, nome, barbearia, email, whatsapp
   `;
 
-  // A conta nasce vazia: sem catálogo padrão e sem dados de exemplo.
+  // A conta nasce vazia de catálogo e de dados de exemplo — mas COM uma
+  // unidade. Todo funcionário pertence a uma unidade, e o teto de equipe é por
+  // unidade; sem esta linha o primeiro cadastro de funcionário não teria onde
+  // cair, e a conta abriria num estado impossível de usar.
+  await sql`insert into unidades (barbeiro_id, nome) values (${barbeiro.id}, 'Unidade principal')`;
+
   criarSessao(res, barbeiro.id);
   res.status(201).json(publico(barbeiro));
 });

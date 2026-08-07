@@ -223,6 +223,59 @@ try {
   const outro = await chamar("POST", "/auth/login", { email: `outro-${codigo}@teste.local`, senha: "x" });
   ok(outro.status === 401, "outro e-mail continua livre — o bloqueio não é global", outro.status);
 
+  console.log("\n── Unidades e teto de funcionários ──────────────────────");
+  const u0 = await chamar("GET", "/unidades");
+  const teto = u0.dados?.limitePorUnidade;
+  ok(teto === 3, "o teto da fase de validação é 3, e vem do banco", u0.dados);
+  ok(u0.dados?.unidades?.length === 1 && u0.dados.unidades[0].nome === "Unidade principal",
+    "o cadastro já cria a Unidade principal", u0.dados?.unidades);
+  ok(u0.dados?.unidades?.[0]?.funcionarios === 1,
+    "o funcionário criado sem unidade caiu na principal", u0.dados?.unidades?.[0]);
+
+  // O teste do teto roda numa unidade separada, para não mexer na equipe que as
+  // seções anteriores usaram nas comissões.
+  const uT = await chamar("POST", "/unidades", { nome: "Unidade Teste" });
+  ok(uT.status === 201 && uT.dados?.vagas === teto, "criar unidade nasce com todas as vagas", uT.dados);
+
+  const ids = [];
+  for (const nome of ["Func 1", "Func 2", "Func 3"]) {
+    const r = await chamar("POST", "/equipe", { nome, unidade_id: uT.dados.id });
+    if (r.status === 201) ids.push(r.dados.id);
+  }
+  ok(ids.length === 3, "os 3 primeiros entram na unidade", ids.length);
+
+  const quarto = await chamar("POST", "/equipe", { nome: "Func 4", unidade_id: uT.dados.id });
+  ok(quarto.status === 409, "o 4º é recusado com 409", quarto);
+  ok(/limite|3/i.test(quarto.dados?.erro || ""), "e a mensagem explica o limite", quarto.dados?.erro);
+
+  // A unidade principal segue com vaga: o teto é por unidade, não por conta.
+  const naPrincipal = await chamar("POST", "/equipe", { nome: "Extra Principal" });
+  ok(naPrincipal.status === 201, "a outra unidade continua aceitando (teto é por unidade)", naPrincipal.status);
+  await chamar("DELETE", `/equipe/${naPrincipal.dados.id}`);
+
+  await chamar("PATCH", `/equipe/${ids[2]}`, { ativo: false });
+  const aposDesativar = await chamar("POST", "/equipe", { nome: "Func 4", unidade_id: uT.dados.id });
+  ok(aposDesativar.status === 201, "desativar alguém libera a vaga", aposDesativar.status);
+
+  const reativar = await chamar("PATCH", `/equipe/${ids[2]}`, { ativo: true });
+  ok(reativar.status === 409, "reativar acima do teto é recusado", reativar.status);
+
+  const apagarCheia = await chamar("DELETE", `/unidades/${uT.dados.id}`);
+  ok(apagarCheia.status === 409, "não dá para apagar unidade com gente dentro", apagarCheia.dados?.erro);
+
+  // Uma conta não pode cadastrar na unidade de outra.
+  const cookieDesteDono = cookie;
+  const outroEmail = `smoke2-${Date.now()}@teste.local`;
+  cookie = "";
+  const outra = await chamar("POST", "/auth/register", {
+    nome: "Outro Dono", barbearia: "Outra Barbearia",
+    whatsapp: "(11) 90000-0000", email: outroEmail, senha: "segredo123",
+  });
+  const invasao = await chamar("POST", "/equipe", { nome: "Intruso", unidade_id: uT.dados.id });
+  ok(invasao.status === 400, "unidade de outra conta é rejeitada", invasao);
+  await sql`delete from barbeiros where id = ${outra.dados.id}`;
+  cookie = cookieDesteDono;
+
   console.log("\n── Área do cliente: telefone + código ───────────────────");
   cookie = cookieDono;
   const fichas = await chamar("GET", "/clientes");

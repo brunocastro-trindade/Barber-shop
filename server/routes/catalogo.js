@@ -3,12 +3,8 @@ import { crudDeBarbearia, textoObrigatorio, numeroNaFaixa } from "../crud.js";
 
 // Cadastros simples da barbearia. Cada um vira /api/equipe, /api/servicos, etc.
 
-export const equipe = crudDeBarbearia({
-  tabela: "equipe",
-  colunas: ["nome", "ativo"],
-  ordem: "ativo desc, nome",
-  validar: (d) => textoObrigatorio(d.nome, "o nome do barbeiro"),
-});
+// `equipe` mudou-se para routes/equipe.js: ganhou unidade e teto de ativos,
+// que a fábrica genérica não expressa.
 
 export const servicos = crudDeBarbearia({
   tabela: "servicos",

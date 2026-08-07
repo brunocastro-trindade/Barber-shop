@@ -48,6 +48,23 @@ create unique index if not exists convites_codigo_uk on convites (upper(codigo))
 -- Barbeiros que trabalham na barbearia. Não têm login: quem acessa o sistema é
 -- o dono da conta. `ativo` em vez de remoção, para não perder o histórico de
 -- quem já saiu da equipe.
+-- Unidades (filiais) de uma conta.
+--
+-- Quem compra o SaaS é o dono (`barbeiros`). Ele pode ter mais de uma loja
+-- física, e é a UNIDADE — não a conta — que tem teto de funcionários. Toda
+-- conta tem pelo menos uma unidade: o cadastro cria a "Unidade principal"
+-- junto com a conta, para nunca existir equipe sem casa.
+create table if not exists unidades (
+  id          uuid        primary key default gen_random_uuid(),
+  barbeiro_id uuid        not null references barbeiros(id) on delete cascade,
+  nome        text        not null,
+  endereco    text        not null default '',
+  ativo       boolean     not null default true,
+  criado_em   timestamptz not null default now()
+);
+
+create index if not exists unidades_barbeiro_idx on unidades (barbeiro_id, nome);
+
 create table if not exists equipe (
   id          uuid primary key default gen_random_uuid(),
   barbeiro_id uuid        not null references barbeiros(id) on delete cascade,
@@ -304,4 +321,82 @@ delete from avaliacoes a
 
 create unique index if not exists avaliacoes_cliente_barbeiro_uk
   on avaliacoes (cliente_id, barbeiro_id);
+
+-- ── Unidades e o teto de funcionários ─────────────────────────────────────────
+--
+-- A ORDEM aqui não é acidental. A coluna e o backfill vêm ANTES da trigger de
+-- limite: assim uma conta que já tenha mais gente do que o teto mantém todo
+-- mundo (fica com direito adquirido) e só é impedida de crescer. Criar a
+-- trigger primeiro faria a própria migração falhar nesses casos.
+
+alter table equipe add column if not exists unidade_id uuid references unidades(id) on delete cascade;
+
+-- Toda conta ganha a unidade principal, se ainda não tiver nenhuma.
+insert into unidades (barbeiro_id, nome)
+select b.id, 'Unidade principal'
+  from barbeiros b
+ where not exists (select 1 from unidades u where u.barbeiro_id = b.id);
+
+-- Equipe existente vai para a unidade mais antiga da conta.
+update equipe e
+   set unidade_id = (
+     select u.id from unidades u
+      where u.barbeiro_id = e.barbeiro_id
+      order by u.criado_em, u.id
+      limit 1
+   )
+ where e.unidade_id is null;
+
+alter table equipe alter column unidade_id set not null;
+
+create index if not exists equipe_unidade_idx on equipe (unidade_id);
+
+-- Fonte única do teto. A aplicação LÊ este valor em vez de repetir o número:
+-- um limite escrito em dois lugares vira dois limites diferentes.
+-- Fase de validação: 3 funcionários ativos por unidade.
+create or replace function cc_limite_equipe_por_unidade() returns int
+  language sql immutable as $$ select 3 $$;
+
+-- O teto mora no banco, não só na rota.
+--
+-- Só contam os ATIVOS: desativar quem saiu libera a vaga, que é o que se
+-- espera de "3 funcionários por unidade". E o `for update` na unidade não é
+-- zelo excessivo — sem ele, dois cadastros simultâneos passariam os dois pelo
+-- count e a quarta pessoa entraria.
+create or replace function cc_checa_limite_equipe() returns trigger
+language plpgsql as $$
+declare
+  ocupadas int;
+  teto     int := cc_limite_equipe_por_unidade();
+begin
+  -- Inativo não ocupa vaga.
+  if new.ativo is not true then
+    return new;
+  end if;
+
+  -- Num UPDATE que não mexe em unidade nem reativa ninguém, nada muda.
+  if tg_op = 'UPDATE' and old.ativo is true and new.unidade_id = old.unidade_id then
+    return new;
+  end if;
+
+  perform 1 from unidades where id = new.unidade_id for update;
+
+  select count(*) into ocupadas
+    from equipe
+   where unidade_id = new.unidade_id
+     and ativo
+     and id <> new.id;
+
+  if ocupadas >= teto then
+    raise exception 'LIMITE_EQUIPE_UNIDADE:%', teto
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists equipe_limite_por_unidade on equipe;
+create trigger equipe_limite_por_unidade
+  before insert or update of unidade_id, ativo on equipe
+  for each row execute function cc_checa_limite_equipe();
 
