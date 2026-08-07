@@ -2,11 +2,10 @@
 // em produção os dois são servidos pela mesma origem — por isso o cookie de
 // sessão viaja sozinho, sem token no localStorage.
 //
-// O painel fala SÓ com a API real. A demonstração ficou restrita à área do
-// cliente, onde as rotas `/api/publico/*` ainda não existem: lá a chamada tenta
-// o servidor e cai para os dados de exemplo se ele não responder.
+// TODAS as telas falam só com a API real. Não há modo demonstração, dados de
+// exemplo nem atalho de acesso: entrar exige conta registrada e sessão assinada
+// pelo servidor.
 
-import { apiDemo } from "./demo.js";
 
 // Além da mensagem, o erro carrega os campos extras que o servidor mandou no
 // corpo. É assim que sinalizadores como `precisaNome` (cliente sem cadastro,
@@ -67,26 +66,16 @@ const cadastro = (caminho) => ({
   remover: (id) => remove(`${caminho}/${id}`),
 });
 
-// Servidor fora do ar: fetch falhou (status 0) ou o proxy devolveu 5xx.
-const servidorIndisponivel = (e) => e instanceof ErroApi && (e.status === 0 || e.status >= 500);
-
-// Envolve um grupo de rotas para cair na demonstração quando o servidor não
-// responde. Usado na área do cliente: quem abre aquele link é o cliente da
-// barbearia, que não tem como "ligar o modo demo" — ou funciona, ou nada feito.
-function comQuedaParaDemo(grupoReal, grupoDemo) {
-  const saida = {};
-  for (const metodo of Object.keys(grupoReal)) {
-    saida[metodo] = async (...args) => {
-      try {
-        return await grupoReal[metodo](...args);
-      } catch (e) {
-        if (servidorIndisponivel(e)) return grupoDemo[metodo](...args);
-        throw e;
-      }
-    };
-  }
-  return saida;
-}
+// NÃO existe modo demonstração.
+//
+// Havia aqui um `comQuedaParaDemo` que, quando o servidor não respondia,
+// silenciosamente trocava a API por dados fictícios guardados no navegador
+// (src/lib/demo.js, removido). A área do cliente exibia barbearias, horários e
+// avaliações inventados como se fossem reais — em produção, isso é enganar
+// quem está tentando marcar um corte, e o dono nem ficava sabendo da queda.
+//
+// Agora API fora do ar é erro visível. Todo acesso exige registro e sessão
+// assinada pelo servidor; nada neste arquivo tem caminho alternativo.
 
 export const api = {
   auth: {
@@ -164,7 +153,7 @@ export const api = {
   // nenhum método aqui recebe `clienteId`: o servidor tira a identidade do
   // cookie. Enquanto o id andava na URL, quem tivesse um id lia o histórico e
   // cancelava agendamentos de qualquer pessoa.
-  publico: comQuedaParaDemo({
+  publico: {
     barbearias: ({ termo = "", modo = "nome" } = {}) =>
       get(`/publico/barbearias?termo=${encodeURIComponent(termo)}&modo=${modo}`),
     barbearia: (id, { registrarAcesso = false } = {}) =>
@@ -182,5 +171,5 @@ export const api = {
     cancelar: (id) => post(`/publico/eu/horarios/${id}/cancelar`),
     fidelidade: (barbeariaId) => get(`/publico/eu/fidelidade/${barbeariaId}`),
     avaliar: (barbeariaId, dados) => post(`/publico/eu/avaliacoes/${barbeariaId}`, dados),
-  }, apiDemo.publico),
+  },
 };

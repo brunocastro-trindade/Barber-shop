@@ -101,6 +101,52 @@ não era o que a fase de validação pedia. O vínculo indireto existe — um
 agendamento aponta para um `equipe_id`, e aquele funcionário pertence a uma
 unidade —, então o dado necessário para essa separação futura já está no lugar.
 
+## Acesso: só com conta registrada
+
+Não existe modo demonstração, dados de exemplo nem atalho de acesso. Entrar no
+painel exige conta registrada e sessão assinada pelo servidor.
+
+### O que foi removido em 07/08/2026, e por quê
+
+**1. Botão "⚡ Acessar Painel Demo (1-Clique)" na tela de login.**
+Era o problema grave. Ele tentava entrar com `demo@barbearia.com` / `demo123`
+e, se a conta não existisse, **criava a conta** com essas credenciais e entrava
+assim mesmo. Consequências:
+
+- Qualquer visitante da tela de login abria um painel completo em um clique.
+- Apagar a conta no banco **não resolvia**: o próximo clique a recriava.
+- As credenciais ficavam legíveis em texto claro no bundle enviado ao navegador.
+
+**2. `src/lib/demo.js` e o `comQuedaParaDemo` da `api.js`.**
+Quando o servidor não respondia, a área do cliente trocava a API por dados
+fictícios do navegador e exibia barbearias, horários e avaliações inventados
+**como se fossem reais**. Em produção isso engana quem está tentando marcar um
+corte, e o dono nem fica sabendo da queda. Agora API fora do ar é erro visível.
+
+O bundle encolheu de 389 kB para 375 kB, e não contém mais nenhuma credencial.
+
+### Regra
+
+Para demonstrar o produto, **crie uma conta real com senha própria** e entregue
+as credenciais a quem for ver. Não recoloque atalho de acesso na tela de login,
+nem dados de exemplo que se passem por reais.
+
+### Por que a auditoria não pegou isso antes
+
+Registro honesto, porque o erro é instrutivo: as varreduras anteriores
+procuraram pelo *módulo* de demonstração (`apiDemo`, `demoAtivo`, `ativarDemo`)
+e por termos como "demonstração". O botão não usava nada disso — ele chamava
+`api.auth.entrar` e `api.auth.cadastrar`, as funções legítimas, com credenciais
+fixas. Procurar pelo nome do mecanismo em vez de perguntar **"quem mais chama a
+função de autenticação, e com quais argumentos?"** deixou a porta passar.
+
+A varredura certa, e que deve ser repetida a cada auditoria:
+
+```bash
+grep -rn "api\.auth\.cadastrar\|api\.auth\.entrar" src/     # quem autentica
+grep -rnEi "senha:\s*[\"']|password:\s*[\"']|creds" src/    # credencial fixa
+```
+
 ## Deploy
 
 ### Variáveis obrigatórias
