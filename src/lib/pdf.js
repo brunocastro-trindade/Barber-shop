@@ -11,7 +11,7 @@ export function makePDF(nomeNegocio, sections) {
   doc.rect(0, 0, W, 22, "F");
   doc.setTextColor(230, 232, 240);
   doc.setFontSize(13); doc.setFont("helvetica", "bold");
-  doc.text("ControlCRM — Exportação de Dados", 14, 10);
+  doc.text("Cut Flow — Exportação de Dados", 14, 10);
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
   doc.text(`${nomeNegocio} · Barbearia`, 14, 16);
   doc.text(`Gerado em ${now}`, W - 14, 16, { align: "right" });
@@ -34,5 +34,5 @@ export function makePDF(nomeNegocio, sections) {
     y = doc.lastAutoTable.finalY + 10;
   });
 
-  doc.save(`ControlCRM_${nomeNegocio.replace(/\s+/g, "_")}_${Date.now()}.pdf`);
+  doc.save(`Cut Flow_${nomeNegocio.replace(/\s+/g, "_")}_${Date.now()}.pdf`);
 }

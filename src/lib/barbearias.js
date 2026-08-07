@@ -1,4 +1,4 @@
-// Catálogo de barbearias que usam o ControlCRM.
+// Catálogo de barbearias que usam o Cut Flow.
 //
 // O cliente final não pertence a uma barbearia só: ele busca, favorita e marca
 // horário em qualquer uma da rede — como num app de agendamento de verdade.

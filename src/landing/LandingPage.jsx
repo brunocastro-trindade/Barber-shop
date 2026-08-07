@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart2, Check, Scissors, Star } from "lucide-react";
 
-import { CSS_VITRINE, LP, lpBtnFantasma, lpBtnPrimario } from "../lib/tema.js";
+import { CSS_VITRINE, FONT_MARCA, LP, lpBtnFantasma, lpBtnPrimario } from "../lib/tema.js";
 import { } from "../ui/tokens.js";
 import { } from "../ui/base.jsx";
 
@@ -40,11 +40,11 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
 
   const faqs = [
     {
-      p: "O que é o ControlCRM?",
-      r: "O ControlCRM é um sistema de gestão feito sob medida para barbearias. Ele reúne agenda semanal, fila de espera para clientes sem horário marcado, ficha completa de cada cliente, controle financeiro e comissão automática por barbeiro — tudo em um só painel, simples de usar no dia a dia.",
+      p: "O que é o Cut Flow?",
+      r: "O Cut Flow é um sistema de gestão feito sob medida para barbearias. Ele reúne agenda semanal, fila de espera para clientes sem horário marcado, ficha completa de cada cliente, controle financeiro e comissão automática por barbeiro — tudo em um só painel, simples de usar no dia a dia.",
     },
     {
-      p: "Para quem é o ControlCRM?",
+      p: "Para quem é o Cut Flow?",
       r: "Para donos de barbearia que querem parar de controlar o negócio no caderno ou no WhatsApp. Funciona tanto para quem trabalha sozinho quanto para equipes com vários barbeiros, com controle de comissão individual para cada profissional.",
     },
     {
@@ -57,7 +57,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
     },
     {
       p: "Preciso instalar alguma coisa?",
-      r: "Não. O ControlCRM funciona direto no navegador do celular, tablet ou computador. É só criar sua conta e começar a usar em minutos.",
+      r: "Não. O Cut Flow funciona direto no navegador do celular, tablet ou computador. É só criar sua conta e começar a usar em minutos.",
     },
   ];
 
@@ -174,7 +174,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
   return (
     <div style={{
       height: "100vh", overflowY: "auto", overflowX: "hidden", background: LP.bg, color: LP.text,
-      fontFamily: '"DM Sans", system-ui, sans-serif', position: "relative",
+      fontFamily: '"Coolvetica", system-ui, sans-serif', position: "relative",
     }}>
       <style>{CSS_VITRINE}</style>
 
@@ -201,17 +201,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
         background: "rgba(5,3,9,0.6)", backdropFilter: "blur(24px) saturate(150%)",
         borderBottom: `1px solid rgba(255,255,255,0.05)`,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 10, display: "flex", alignItems: "center",
-            justifyContent: "center", color: "#fff",
-            background: `linear-gradient(135deg, ${c}, #6D28D9)`,
-            boxShadow: `0 4px 18px ${c}55, inset 0 1px 0 rgba(255,255,255,0.3)`,
-          }}>
-            <Scissors size={16} strokeWidth={2.2} />
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px" }}>ControlCRM</span>
-        </div>
+        <img src="/logos/logo-horizontal-roxo.png" alt="Cut Flow" style={{ height: 24, width: "auto" }} />
         <div className="lp-nav-links" style={{ display: "flex", gap: 36, position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
           {[["Recursos", "recursos"], ["Preços", "precos"], ["Perguntas", "perguntas"]].map(([l, id]) => (
             <span key={l} className="lp-link" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}>{l}</span>
@@ -239,8 +229,9 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
         </div>
 
         <h1 className="lp-anim" style={{
-          fontSize: "clamp(44px, 7.5vw, 84px)", fontWeight: 800, lineHeight: 1.04,
-          letterSpacing: "-0.035em", margin: 0, color: "#fff", animationDelay: ".08s",
+          fontSize: "clamp(44px, 7.5vw, 84px)", fontWeight: 400, lineHeight: 1.04,
+          letterSpacing: "-0.01em", margin: 0, color: "#fff", animationDelay: ".08s",
+          fontFamily: FONT_MARCA,
         }}>
           Uma nova era na gestão
           <br />
@@ -273,7 +264,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
           <span>Cancele quando quiser</span>
           <span style={{ width: 3, height: 3, borderRadius: "50%", background: LP.dimmer }} />
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={11} color={c} fill={c} strokeWidth={0} />)}
+            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={11} color={LP.laranja} fill={LP.laranja} strokeWidth={0} />)}
             Avaliação 5 estrelas
           </span>
         </div>
@@ -300,7 +291,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
             <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E" }} />
             <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840" }} />
             <div style={{ marginLeft: "auto", fontSize: 11, color: LP.dim, display: "flex", alignItems: "center", gap: 6 }}>
-              <BarChart2 size={12} strokeWidth={1.8} /> Painel · ControlCRM
+              <BarChart2 size={12} strokeWidth={1.8} /> Painel · Cut Flow
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
@@ -336,8 +327,8 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
         <div style={{ textAlign: "center", marginBottom: 70 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: LP.roxoClaro, letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 18 }}>Recursos</div>
           <h2 style={{
-            fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 800, color: "#fff",
-            letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0,
+            fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400, color: "#fff",
+            letterSpacing: "-0.01em", lineHeight: 1.1, margin: 0, fontFamily: FONT_MARCA,
           }}>
             Conheça a nova experiência
             <br />
@@ -368,7 +359,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
       <div id="precos" style={{ position: "relative", zIndex: 1, maxWidth: 1080, margin: "0 auto", padding: "110px 24px 40px" }}>
         <div style={{ textAlign: "center", marginBottom: 50 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: LP.roxoClaro, letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 18 }}>Planos & Preços</div>
-          <h2 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", margin: "0 0 16px" }}>
+          <h2 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400, color: "#fff", letterSpacing: "-0.01em", margin: "0 0 16px", fontFamily: FONT_MARCA }}>
             Escolha o plano certo para o seu negócio
           </h2>
           <p style={{ fontSize: 15, color: LP.dim, margin: "0 auto 28px", maxWidth: 540 }}>
@@ -421,7 +412,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
                 boxShadow: ehDestaque ? `0 20px 60px ${c}30` : "0 20px 60px rgba(0,0,0,0.35)",
               }}>
                 {ehDestaque && (
-                  <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: c, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 14px", borderRadius: 999, textTransform: "uppercase", letterSpacing: ".08em", boxShadow: `0 4px 14px ${c}60` }}>
+                  <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: LP.laranja, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 14px", borderRadius: 999, textTransform: "uppercase", letterSpacing: ".08em", boxShadow: `0 4px 14px ${LP.laranja}60` }}>
                     Mais Escolhido
                   </div>
                 )}
@@ -469,7 +460,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
       <div id="perguntas" style={{ position: "relative", zIndex: 1, maxWidth: 760, margin: "0 auto", padding: "110px 24px 60px" }}>
         <div style={{ textAlign: "center", marginBottom: 46 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: LP.roxoClaro, letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 18 }}>FAQ</div>
-          <h2 style={{ fontSize: "clamp(28px, 4.5vw, 44px)", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", margin: 0 }}>
+          <h2 style={{ fontSize: "clamp(28px, 4.5vw, 44px)", fontWeight: 400, color: "#fff", letterSpacing: "-0.01em", margin: 0, fontFamily: FONT_MARCA }}>
             Perguntas frequentes
           </h2>
           <p style={{ fontSize: 14, color: LP.dim, marginTop: 14 }}>Não encontrou o que procurava? Fale com a gente.</p>
@@ -490,15 +481,16 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
           background: `radial-gradient(ellipse 50% 50% at 50% 100%, ${c}5E 0%, ${c}1E 45%, transparent 72%)`,
         }} />
         <h2 style={{
-          position: "relative", fontSize: "clamp(34px, 5.5vw, 60px)", fontWeight: 800,
-          color: "#fff", letterSpacing: "-0.03em", lineHeight: 1.08, margin: 0,
+          position: "relative", fontSize: "clamp(34px, 5.5vw, 60px)", fontWeight: 400,
+          color: "#fff", letterSpacing: "-0.01em", lineHeight: 1.08, margin: 0,
+          fontFamily: FONT_MARCA,
         }}>
           Deixe a concorrência para trás.
           <br />
           <span style={{ color: LP.dimmer }}>A partir de agora.</span>
         </h2>
         <p style={{ position: "relative", fontSize: 16, color: LP.dim, margin: "24px auto 40px", maxWidth: 520, lineHeight: 1.7 }}>
-          O ControlCRM organiza sua operação para você focar no que importa: o corte.
+          O Cut Flow organiza sua operação para você focar no que importa: o corte.
         </p>
         <div className="lp-hero-botoes" style={{ position: "relative", display: "flex", gap: 14, justifyContent: "center" }}>
           <button onClick={onRegister} className="lp-btn lp-btn-primario" style={lpBtnPrimario}>Criar minha conta →</button>
@@ -516,15 +508,8 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
           display: "flex", justifyContent: "space-between", gap: 40, flexWrap: "wrap",
         }}>
           <div style={{ maxWidth: 280 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center",
-                justifyContent: "center", color: "#fff",
-                background: `linear-gradient(135deg, ${c}, #6D28D9)`,
-              }}>
-                <Scissors size={14} strokeWidth={2.2} />
-              </div>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>ControlCRM</span>
+            <div style={{ marginBottom: 16 }}>
+              <img src="/logos/logo-horizontal-roxo.png" alt="Cut Flow" style={{ height: 20, width: "auto" }} />
             </div>
             <p style={{ fontSize: 13, color: LP.dim, lineHeight: 1.7, margin: 0 }}>
               A experiência de gestão da nova geração de barbearias.
@@ -549,7 +534,7 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
           maxWidth: 1080, margin: "0 auto", padding: "0 24px 32px",
           fontSize: 12, color: LP.dimmer,
         }}>
-          © 2026 ControlCRM. Todos os direitos reservados.
+          © 2026 Cut Flow. Todos os direitos reservados.
         </div>
       </div>
     </div>

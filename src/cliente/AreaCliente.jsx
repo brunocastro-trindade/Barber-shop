@@ -1,7 +1,7 @@
 // ── Área do cliente da barbearia ──────────────────────────────────────────────
 // Quem usa esta tela é o cliente que vai cortar o cabelo, não o dono do
 // sistema. Ele não pertence a uma barbearia só: busca, favorita e marca
-// horário em qualquer uma que use o ControlCRM.
+// horário em qualquer uma que use o Cut Flow.
 //
 // Estrutura em 4 abas (Início, Buscar, Agendamentos, Menu), layout de celular
 // — é de lá que quase todo agendamento sai.
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../lib/api.js";
-import { LP, lpBtnPrimario, lpBtnFantasma, CSS_VITRINE } from "../lib/tema.js";
+import { LP, FONT_MARCA, lpBtnPrimario, lpBtnFantasma, CSS_VITRINE } from "../lib/tema.js";
 import { emReais } from "../lib/formato.js";
 import Estabelecimento from "./Estabelecimento.jsx";
 import {
@@ -42,7 +42,7 @@ const ABAS = [
 // Banners da tela inicial — no lugar das promoções que a barbearia cadastraria.
 const DESTAQUES = [
   { titulo: "Marque seu horário sem ligar para a barbearia", cor: "#7C3AED" },
-  { titulo: "Acompanhe seus pontos e troque por cortes grátis", cor: "#FF5500" },
+  { titulo: "Acompanhe seus pontos e troque por cortes grátis", cor: "#fc570a" },
   { titulo: "Salve suas barbearias favoritas e agende em 2 toques", cor: "#7C3AED" },
 ];
 
@@ -69,14 +69,9 @@ function Entrada({ onEntrou, onVoltarSite }) {
   return (
     <div style={{ padding: "48px 20px 60px", maxWidth: 440, margin: "0 auto" }}>
       <div className="lp-anim" style={{ textAlign: "center", marginBottom: 34 }}>
-        <div style={{
-          width: 62, height: 62, borderRadius: 20, margin: "0 auto 22px",
-          background: `linear-gradient(135deg, ${LP.roxo}, #6D28D9)`,
-          display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-          boxShadow: `0 10px 40px ${LP.roxo}60, inset 0 1px 0 rgba(255,255,255,0.3)`,
-        }}><Scissors size={28} strokeWidth={2.2} /></div>
+        <img src="/logos/logo-roxa.png" alt="Cut Flow" style={{ height: 52, width: "auto", margin: "0 auto 22px", display: "block" }} />
 
-        <h1 style={{ fontSize: 29, fontWeight: 800, color: "#fff", margin: "0 0 10px", letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+        <h1 style={{ fontSize: 29, fontWeight: 400, color: "#fff", margin: "0 0 10px", letterSpacing: "-0.01em", lineHeight: 1.15, fontFamily: FONT_MARCA }}>
           Seu corte, na hora que der
         </h1>
         <p style={{ fontSize: 15, color: LP.dim, margin: 0, lineHeight: 1.65 }}>
@@ -580,7 +575,7 @@ function AbaMenu({ cliente, onAbrirLoja, onSair, onVoltarSite }) {
       )}
 
       <div style={{ textAlign: "center", fontSize: 11.5, color: LP.dimmer, marginTop: 24, lineHeight: 1.7 }}>
-        ControlCRM Cliente<br />Versão 1.0.0
+        Cut Flow Cliente<br />Versão 1.0.0
       </div>
     </div>
   );
@@ -598,7 +593,7 @@ function Sucesso({ agendamento, onVerAgenda }) {
         boxShadow: `0 12px 50px ${LP.roxo}70, inset 0 1px 0 rgba(255,255,255,0.3)`,
       }}><Check size={38} strokeWidth={2.6} /></div>
 
-      <h1 className="lp-anim" style={{ fontSize: 28, fontWeight: 800, color: "#fff", margin: "0 0 12px", letterSpacing: "-0.03em", animationDelay: ".06s" }}>
+      <h1 className="lp-anim" style={{ fontSize: 28, fontWeight: 400, color: "#fff", margin: "0 0 12px", letterSpacing: "-0.01em", animationDelay: ".06s", fontFamily: FONT_MARCA }}>
         Horário confirmado!
       </h1>
       <p className="lp-anim" style={{ fontSize: 15, color: LP.dim, margin: "0 0 30px", lineHeight: 1.65, animationDelay: ".12s" }}>
@@ -684,7 +679,7 @@ export default function AreaCliente({ onVoltarSite }) {
 
   const moldura = {
     minHeight: "100vh", background: LP.bg, color: LP.text,
-    fontFamily: '"DM Sans", system-ui, sans-serif', position: "relative", overflowX: "hidden",
+    fontFamily: '"Coolvetica", system-ui, sans-serif', position: "relative", overflowX: "hidden",
   };
 
   const brilho = (

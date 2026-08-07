@@ -116,14 +116,12 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: B.bg, color: B.text, fontFamily: '"DM Sans", system-ui, sans-serif', overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: B.bg, color: B.text, fontFamily: '"Coolvetica", system-ui, sans-serif', overflow: "hidden" }}>
       <GlobalStyles />
       <div style={{ width: 230, background: "#16181D", borderRight: `1px solid ${B.border}`, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0, boxShadow: `4px 0 28px rgba(0,0,0,0.4)` }}>
         <div style={{ padding: "16px 14px 14px", borderBottom: `1px solid ${B.border}` }}>
           <Row gap={10}>
-            <div style={{ width: 36, height: 36, borderRadius: 12, background: `linear-gradient(135deg, ${N.color}, #6D28D9)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: `0 4px 18px ${N.color}55, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
-              <N.icon size={17} color="#fff" strokeWidth={2.2} />
-            </div>
+            <img src="/logos/logo-roxa.png" alt="Cut Flow" style={{ width: 36, height: "auto", flexShrink: 0 }} />
             <Col gap={2} style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: B.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.barbearia}</div>
               <div style={{ fontSize: 10, color: B.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.nome}</div>
