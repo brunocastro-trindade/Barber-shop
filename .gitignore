@@ -29,6 +29,13 @@ dist-ssr
 # como trabalhar neste repositório, então precisam viajar junto com ele.
 !.claude/skills/code-review-graph/
 
+# Temporários do Illustrator/Photoshop. O autosave do Illustrator nasce como
+# `~ai-<uuid>_.tmp` (um PDF de centenas de KB) na mesma pasta do .ai — um deles
+# já foi commitado por engano. Binário commitado fica no histórico para sempre.
+~ai-*.tmp
+*.tmp
+~$*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
