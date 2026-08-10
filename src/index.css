@@ -22,10 +22,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* `min-height`, e não `height` com `overflow: hidden`.
+ *
+ * A regra antiga travava o scroll da aplicação INTEIRA na altura da janela.
+ * O painel e a landing não sofriam porque cada um cria o próprio container
+ * rolável (App.jsx e LandingPage.jsx). Já o checkout de planos, o login, o
+ * cadastro e a área do cliente dependiam desta regra ser permissiva — e não
+ * era: em tela baixa, o conteúdo simplesmente sumia embaixo, sem barra de
+ * rolagem e sem como alcançar o botão do final.
+ *
+ * Quem precisa de altura fixa continua declarando na própria raiz (o painel
+ * faz isso), que é onde a decisão pertence. */
 #root {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }

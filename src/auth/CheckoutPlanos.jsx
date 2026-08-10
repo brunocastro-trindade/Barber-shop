@@ -63,6 +63,18 @@ const PLANOS = [
   },
 ];
 
+// `overflowX` em vez de `overflow`, e centralização por `margin: auto` no
+// filho em vez de `justifyContent: center`.
+//
+// As duas coisas juntas cortavam a tela: `overflow: hidden` escondia o que
+// passasse da altura, e o `justify-content: center` do flex empurra o excesso
+// para FORA nas duas pontas — some tanto o topo quanto o rodapé, e nem a barra
+// de rolagem aparece. Era o que impedia de chegar no botão do final na escolha
+// de planos.
+//
+// `margin: auto` no filho centraliza igual quando sobra espaço, mas quando o
+// conteúdo é mais alto que a janela as margens automáticas viram zero em vez de
+// estourar. É a diferença entre as duas técnicas.
 const moldura = {
   minHeight: "100vh",
   background: "#121418",
@@ -71,10 +83,9 @@ const moldura = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
   padding: "40px 24px",
   position: "relative",
-  overflow: "hidden",
+  overflowX: "hidden",
 };
 
 const cartao = {
@@ -113,7 +124,7 @@ export const CheckoutPlanos = ({ onConcluir, onBack, onLogin }) => {
     <div style={moldura}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 60% at 50% 30%, ${N.color}20 0%, ${N.color}06 50%, transparent 75%)` }} />
 
-      <div style={{ width: "100%", maxWidth: passo === 1 ? 1040 : 480, position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: passo === 1 ? 1040 : 480, position: "relative", zIndex: 1, margin: "auto 0" }}>
         <button type="button" onClick={() => (passo === 2 ? setPasso(1) : onBack())}
           style={{ background: "transparent", border: "none", color: B.muted, fontSize: 13, cursor: "pointer", marginBottom: 20 }}>
           ← {passo === 2 ? "Voltar para escolha de planos" : "Voltar ao site"}
