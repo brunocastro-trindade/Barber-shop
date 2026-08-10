@@ -26,12 +26,20 @@ services:
     # As dependências estão com `^` e um install solto pode resolver para um
     # minor diferente do que passou no smoke.
     #
+    # `--include=dev` é obrigatório aqui, e o motivo não é óbvio.
+    #
+    # O `NODE_ENV=production` declarado mais abaixo vale também para o BUILD, e
+    # com ele o `npm ci` pula as devDependencies. O `vite` é devDependency — e
+    # deve ser, é ferramenta de build, não código que roda em produção. Sem o
+    # flag, o build instala só as 10 dependências de produção e morre em
+    # "sh: 1: vite: not found".
+    #
     # `npm run release` aplica db/schema.sql. Está aqui, no build, porque o
     # `preDeployCommand` — o lugar certo para a fase de release — só existe nos
     # planos pagos. A migração é idempotente e só adiciona, então rodá-la no
     # build é seguro. Ao migrar para um plano pago, mova-a para
     # `preDeployCommand` e tire daqui.
-    buildCommand: npm ci && npm run build && npm run release
+    buildCommand: npm ci --include=dev && npm run build && npm run release
     startCommand: npm start
 
     # O servidor responde {"ok":true} nesta rota sem tocar no banco: serve para
