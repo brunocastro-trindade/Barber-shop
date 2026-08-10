@@ -17,7 +17,7 @@ import { LP, FONT_MARCA, lpBtnPrimario, lpBtnFantasma, CSS_VITRINE } from "../li
 import { emReais } from "../lib/formato.js";
 import Estabelecimento from "./Estabelecimento.jsx";
 import {
-  Cartao, Rotulo, Titulo, Erro, Carregando, Vazio, Estrelas, LogoLoja, Inicial,
+  Cartao, Rotulo, Titulo, Erro, Carregando, Vazio, LogoLoja, Inicial,
   Chip, Busca, Campo, LinhaLoja,
 } from "./ui.jsx";
 import { diaSemana, diaMes, porExtenso, dataLonga, mascaraTelefone } from "./formatos.js";
@@ -247,7 +247,7 @@ function AbaInicio({ cliente, onAbrirLoja, onBuscar }) {
                 {dados.favoritas.map(l => (
                   <div key={l.id} onClick={() => onAbrirLoja(l.id)} style={{ width: 78, textAlign: "center", cursor: "pointer", flexShrink: 0 }}>
                     <div style={{ display: "flex", justifyContent: "center", marginBottom: 9 }}>
-                      <LogoLoja loja={l} size={62} comNota />
+                      <LogoLoja loja={l} size={62} />
                     </div>
                     <div style={{ fontSize: 11.5, color: LP.text, lineHeight: 1.35 }}>{l.nome}</div>
                   </div>
@@ -327,13 +327,15 @@ function AbaBuscar({ cliente, onAbrirLoja }) {
         <Vazio
           icone={<Search size={30} strokeWidth={1.7} />}
           titulo="Nenhum estabelecimento"
-          texto="Tente outro nome ou mude o filtro para cidade."
+          texto="Tente outro nome."
         />
       )}
 
+      {/* Sem o coração de favorito: `l.favorito` nunca veio do servidor — a
+          listagem pública não sabe quem está logado —, então o ícone ficava
+          sempre apagado, inclusive para barbearia realmente favoritada. */}
       {lista?.map(l => (
-        <LinhaLoja key={l.id} loja={l} onClick={() => onAbrirLoja(l.id)}
-          direita={l.favorito ? <Heart size={16} color="#EF4444" fill="#EF4444" strokeWidth={0} /> : null} />
+        <LinhaLoja key={l.id} loja={l} onClick={() => onAbrirLoja(l.id)} />
       ))}
     </div>
   );
@@ -419,7 +421,7 @@ function AbaAgenda({ onAbrirLoja }) {
               <div onClick={() => onAbrirLoja(a.barbearia.id)} style={{ fontSize: 14.5, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
                 {a.barbearia.nome}
               </div>
-              <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{a.barbearia.cidade}</div>
+              <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{a.barbearia.dono}</div>
             </div>
             <span style={{
               fontSize: 10.5, fontWeight: 700, padding: "4px 11px", borderRadius: 999, flexShrink: 0,
@@ -540,9 +542,8 @@ function AbaMenu({ cliente, onAbrirLoja, onSair, onVoltarSite }) {
                 <LogoLoja loja={l} size={38} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{l.nome}</div>
-                  <div style={{ fontSize: 11.5, color: LP.dim, marginTop: 1 }}>{l.cidade}</div>
+                  <div style={{ fontSize: 11.5, color: LP.dim, marginTop: 1 }}>{l.dono}</div>
                 </div>
-                <Estrelas nota={l.nota} size={11} />
               </div>
             ))}
           </Cartao>
@@ -618,7 +619,7 @@ function Sucesso({ agendamento, onVerAgenda }) {
           <LogoLoja loja={agendamento.barbearia} size={44} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{agendamento.barbearia.nome}</div>
-            <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{agendamento.barbearia.endereco}</div>
+            <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{agendamento.barbearia.dono}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 13, paddingTop: 14 }}>

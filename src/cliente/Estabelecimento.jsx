@@ -4,8 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  ChevronLeft, Heart, Clock, MapPin, Phone, Check, Star, Calendar,
-  Wifi, Car, Accessibility, Coffee, CreditCard, Tv, Gift, Scissors,
+  ChevronLeft, Heart, Clock, Phone, Star, Calendar, Gift, Scissors, User,
 } from "lucide-react";
 
 import { api } from "../lib/api.js";
@@ -15,7 +14,7 @@ import {
   Cartao, Rotulo, Erro, Carregando, Vazio, Estrelas, LogoLoja, Inicial,
   Opcao, Busca,
 } from "./ui.jsx";
-import { campoEstilo, diaSemana, diaMes, porExtenso, distanciaCurta } from "./formatos.js";
+import { campoEstilo, diaSemana, diaMes, porExtenso } from "./formatos.js";
 
 const ABAS = [
   ["servicos", "Serviços"],
@@ -24,24 +23,6 @@ const ABAS = [
   ["fidelidade", "Fidelidade"],
   ["avaliacoes", "Avaliações"],
 ];
-
-const ICONE_COMODIDADE = {
-  wifi: Wifi,
-  estacionamento: Car,
-  acessibilidade: Accessibility,
-  cafe: Coffee,
-  cartao: CreditCard,
-  tv: Tv,
-};
-
-const NOME_COMODIDADE = {
-  wifi: "Wi-Fi grátis",
-  estacionamento: "Estacionamento",
-  acessibilidade: "Acessível",
-  cafe: "Café cortesia",
-  cartao: "Cartão e PIX",
-  tv: "TV",
-};
 
 // ── Assistente de agendamento (3 passos) ──────────────────────────────────────
 // O serviço já veio escolhido da lista, então sobra: barbeiro, dia/hora e
@@ -164,7 +145,6 @@ function Agendar({ loja, servico, onVoltar, onPronto }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{p.nome}</div>
                   <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{p.cargo}</div>
                 </div>
-                <Estrelas nota={p.nota} size={11} />
               </Opcao>
             ))}
           </div>
@@ -244,7 +224,7 @@ function Agendar({ loja, servico, onVoltar, onPronto }) {
                 <LogoLoja loja={loja} size={44} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{loja.nome}</div>
-                  <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{loja.endereco}</div>
+                  <div style={{ fontSize: 12, color: LP.dim, marginTop: 2 }}>{loja.dono}</div>
                 </div>
               </div>
               {[
@@ -331,65 +311,25 @@ const AbaServicos = ({ loja, onAgendar }) => {
 };
 
 const AbaDetalhes = ({ loja }) => {
-  const hoje = new Date().getDay();
   // expediente vem de segunda a domingo; getDay() começa no domingo.
-  const indiceHoje = hoje === 0 ? 6 : hoje - 1;
 
   return (
     <>
-      <Rotulo>Sobre</Rotulo>
-      <p style={{ fontSize: 14, color: LP.text, lineHeight: 1.7, margin: "0 0 26px" }}>{loja.sobre}</p>
-
-      <Rotulo>Comodidades</Rotulo>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginBottom: 26 }}>
-        {loja.comodidades.map(c => {
-          const Icone = ICONE_COMODIDADE[c] || Check;
-          return (
-            <div key={c} style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "10px 15px",
-              borderRadius: 999, border: `1px solid ${LP.border}`, background: "rgba(255,255,255,0.03)",
-              fontSize: 12.5, color: LP.text,
-            }}>
-              <Icone size={15} color={LP.roxoClaro} strokeWidth={1.9} /> {NOME_COMODIDADE[c] || c}
-            </div>
-          );
-        })}
-      </div>
-
-      <Rotulo>Horário de atendimento</Rotulo>
-      <Cartao style={{ padding: "6px 18px", marginBottom: 26 }}>
-        {loja.expediente.map(([dia, faixa], i) => {
-          const ehHoje = i === indiceHoje;
-          return (
-            <div key={dia} style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "13px 0", borderBottom: i < loja.expediente.length - 1 ? `1px solid ${LP.border}` : "none",
-            }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: ehHoje ? "#fff" : LP.text, fontWeight: ehHoje ? 700 : 400 }}>
-                {dia}
-                {ehHoje && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999,
-                    background: LP.roxo, color: "#fff",
-                  }}>Hoje</span>
-                )}
-              </span>
-              <span style={{ fontSize: 13, color: faixa === "Fechado" ? LP.dimmer : LP.text, fontWeight: ehHoje ? 700 : 400 }}>
-                {faixa}
-              </span>
-            </div>
-          );
-        })}
-      </Cartao>
-
+      {/* Saíram daqui o texto "sobre", as comodidades e o horário de
+          atendimento: os três eram fixos no código, idênticos para toda
+          barbearia, e chegavam ao cliente como informação da loja que ele ia
+          visitar. O sistema não coleta nada disso — quando coletar, voltam
+          vindos do banco. Fica o contato, que é real. */}
       <Rotulo>Contato</Rotulo>
       <Cartao style={{ fontSize: 13.5, color: LP.dim, lineHeight: 2.1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <MapPin size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} /> {loja.endereco} — {loja.cidade}
+          <User size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} /> {loja.dono}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Phone size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} /> {loja.telefone}
-        </div>
+        {loja.telefone && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Phone size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} /> {loja.telefone}
+          </div>
+        )}
       </Cartao>
     </>
   );
@@ -407,7 +347,6 @@ const AbaProfissionais = ({ loja }) => (
           <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 3 }}>{p.nome}</div>
           <div style={{ fontSize: 12.5, color: LP.dim }}>{p.cargo}</div>
         </div>
-        <Estrelas nota={p.nota} size={12} />
       </div>
     ))}
   </>
@@ -640,14 +579,16 @@ export default function Estabelecimento({ cliente, lojaId, onVoltar, onAgendado 
           <div style={{ flex: 1 }} />
           <button onClick={favoritar} aria-label="Favoritar" style={{
             width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-            border: `1px solid ${loja.favorito ? "#EF444470" : LP.border}`,
-            background: loja.favorito ? "rgba(239,68,68,0.16)" : "rgba(5,3,9,0.5)",
+            border: `1px solid ${LP.border}`,
+            background: "rgba(5,3,9,0.5)",
             backdropFilter: "blur(10px)", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Heart size={17} strokeWidth={2}
-              color={loja.favorito ? "#EF4444" : "#fff"}
-              fill={loja.favorito ? "#EF4444" : "transparent"} />
+            {/* Sem estado inicial: `loja.favorito` nunca veio do servidor — a
+                ficha não sabe quem está logado —, então o coração ficava sempre
+                apagado, inclusive para barbearia já favoritada. O clique
+                continua funcionando e a rota devolve o estado novo. */}
+            <Heart size={17} strokeWidth={2} color="#fff" fill="transparent" />
           </button>
         </div>
 
@@ -655,15 +596,13 @@ export default function Estabelecimento({ cliente, lojaId, onVoltar, onAgendado 
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
             <LogoLoja loja={loja} size={58} />
             <div style={{ minWidth: 0 }}>
-              <Estrelas nota={loja.nota} size={14} />
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: "5px 0 0", letterSpacing: "-0.03em" }}>
+              {/* Sem a nota: era 4,9 fixo para barbearia sem avaliação
+                  nenhuma. As avaliações reais estão na aba própria. */}
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em" }}>
                 {loja.nome}
               </h1>
+              <div style={{ fontSize: 13, color: LP.dim, marginTop: 4 }}>{loja.dono}</div>
             </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: LP.dim, lineHeight: 1.55 }}>
-            <MapPin size={14} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>{loja.endereco} — {loja.cidade} · {distanciaCurta(loja.distancia)}</span>
           </div>
         </div>
       </div>

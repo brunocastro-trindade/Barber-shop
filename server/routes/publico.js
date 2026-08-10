@@ -15,12 +15,6 @@ const limpaTelefone = (t) => String(t || "").replace(/\D/g, "");
 const eUUID = (str) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ""));
 
-// `contato` decide se o telefone do dono entra na resposta.
-//
-// Na ficha de UMA barbearia ele é informação de negócio: quem abriu a página
-// quer ligar. Já na LISTA, devolver o telefone de todas as barbearias entrega,
-// numa requisição sem autenticação, a agenda inteira de donos do sistema —
-// pronta para spam. Lista sai sem contato; ficha sai com.
 // Iniciais e cor do selo da barbearia, derivadas do nome.
 //
 // A tela desenha um quadrado com a sigla sobre um degradê (ver LogoLoja em
@@ -40,6 +34,21 @@ const corDe = (chave) => {
   return PALETA[soma % PALETA.length];
 };
 
+// Só o que a barbearia realmente informou.
+//
+// Esta função devolvia endereço "Rua Principal, 100", bairro "Centro", cidade
+// "São Paulo - SP", nota 4,9 com 12 avaliações, foto de capa e logo de banco de
+// imagens, um texto "sobre" genérico, comodidades e horário de funcionamento —
+// tudo fixo no código, igual para toda barbearia, inventado. Chegava ao cliente
+// final como se fosse informação real da loja que ele ia visitar.
+//
+// Campo que o sistema não coleta não é devolvido. Quando existir cadastro de
+// endereço e horário, eles entram aqui vindos do banco.
+//
+// `contato` decide se o telefone do dono entra na resposta. Na ficha de UMA
+// barbearia ele é informação de negócio: quem abriu a página quer ligar. Já na
+// LISTA, devolver o telefone de todas entrega, numa requisição sem
+// autenticação, a agenda inteira de donos do sistema — pronta para spam.
 const resumoBarbearia = (b, { contato = false } = {}) => ({
   id: b.id,
   nome: b.barbearia || "Barbearia",
@@ -48,19 +57,6 @@ const resumoBarbearia = (b, { contato = false } = {}) => ({
   cor: corDe(b.id || b.barbearia),
   telefone: contato ? b.whatsapp || "" : "",
   whatsapp: contato ? b.whatsapp || "" : "",
-  endereco: "Rua Principal, 100",
-  bairro: "Centro",
-  cidade: "São Paulo - SP",
-  nota: Number(b.nota || 4.9),
-  avaliacoesCount: Number(b.avaliacoes_count || 12),
-  capa: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop&q=80",
-  logo: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&auto=format&fit=crop&q=80",
-  sobre: "Barbearia de alto padrão com atendimento personalizado e profissionais experientes.",
-  comodidades: ["wifi", "cafe", "cartao", "ar"],
-  expediente: [
-    ["Segunda", "08:00–19:00"], ["Terça", "08:00–19:00"], ["Quarta", "08:00–19:00"],
-    ["Quinta", "08:00–19:00"], ["Sexta", "08:00–19:00"], ["Sábado", "08:00–19:00"], ["Domingo", "Fechado"],
-  ],
 });
 
 // 1. POST /api/publico/identificar
@@ -128,22 +124,21 @@ router.get("/eu", exigirCliente, (req, res) => {
 // 2. GET /api/publico/barbearias
 router.get("/barbearias", async (req, res) => {
   const termo = (req.query.termo || "").trim().toLowerCase();
+  // O join com `avaliacoes` existia só para a nota média que a listagem
+  // mostrava — e que caía em 4,9 fixo quando não havia avaliação nenhuma.
   const barbeiros = await sql`
-    select b.id, b.nome, b.barbearia, b.whatsapp,
-           coalesce(avg(a.nota), 4.9)::float8 as nota,
-           count(a.id)::int as avaliacoes_count
+    select b.id, b.nome, b.barbearia, b.whatsapp
     from barbeiros b
-    left join avaliacoes a on a.barbeiro_id = b.id
-    group by b.id
     order by b.barbearia
   `;
 
   let resultado = barbeiros.map(b => resumoBarbearia(b));
   if (termo) {
+    // Sem `cidade` — a busca por cidade filtrava contra "São Paulo - SP" fixo,
+    // devolvido igual para toda barbearia. Sobra o que é real: nome e dono.
     resultado = resultado.filter(b =>
       b.nome.toLowerCase().includes(termo) ||
-      b.dono.toLowerCase().includes(termo) ||
-      b.cidade.toLowerCase().includes(termo)
+      b.dono.toLowerCase().includes(termo)
     );
   }
 
@@ -155,13 +150,9 @@ router.get("/barbearias/:id", async (req, res) => {
   if (!eUUID(req.params.id)) return res.status(404).json({ erro: "Barbearia não encontrada." });
 
   const [b] = await sql`
-    select b.id, b.nome, b.barbearia, b.whatsapp,
-           coalesce(avg(a.nota), 4.9)::float8 as nota,
-           count(a.id)::int as avaliacoes_count
+    select b.id, b.nome, b.barbearia, b.whatsapp
     from barbeiros b
-    left join avaliacoes a on a.barbeiro_id = b.id
     where b.id = ${req.params.id}
-    group by b.id
   `;
   if (!b) return res.status(404).json({ erro: "Barbearia não encontrada." });
 
@@ -177,7 +168,8 @@ router.get("/barbearias/:id", async (req, res) => {
   // ter o nome completo exposto para os outros clientes dela.
   const [servicos, equipe, avaliacoes] = await Promise.all([
     sql`select id, nome, preco::float8 as preco, duracao_min as duracao from servicos where barbeiro_id = ${b.id} and ativo = true order by nome`,
-    sql`select id, nome, 'Barbeiro' as cargo, 5.0 as nota from equipe where barbeiro_id = ${b.id} and ativo = true order by nome`,
+    // Sem `nota`: era 5.0 fixo no SQL, nota inventada para todo funcionário.
+    sql`select id, nome, 'Barbeiro' as cargo from equipe where barbeiro_id = ${b.id} and ativo = true order by nome`,
     sql`
       select split_part(c.nome, ' ', 1) as nome, a.nota, a.texto,
              to_char(a.criado_em, 'YYYY-MM-DD') as data
@@ -195,7 +187,7 @@ router.get("/barbearias/:id", async (req, res) => {
     ...resumo,
     servicos,
     avaliacoes,
-    barbeiros: equipe.length ? equipe : [{ id: b.id, nome: b.nome, cargo: "Proprietário", nota: 5.0 }],
+    barbeiros: equipe.length ? equipe : [{ id: b.id, nome: b.nome, cargo: "Proprietário" }],
   });
 });
 

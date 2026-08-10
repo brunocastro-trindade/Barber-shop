@@ -147,6 +147,30 @@ grep -rn "api\.auth\.cadastrar\|api\.auth\.entrar" src/     # quem autentica
 grep -rnEi "senha:\s*[\"']|password:\s*[\"']|creds" src/    # credencial fixa
 ```
 
+## A área pública só mostra dado real
+
+A vitrine da barbearia (`resumoBarbearia` em `server/routes/publico.js`) devolvia
+endereço "Rua Principal, 100", bairro "Centro", cidade "São Paulo - SP",
+**nota 4,9 com 12 avaliações**, capa e logo de banco de imagens, um texto
+"sobre" genérico, comodidades e horário de atendimento — tudo fixo no código,
+idêntico para toda barbearia. Cada barbeiro da equipe também vinha com nota
+`5.0`, escrita direto no SQL.
+
+Isso chegava ao cliente final como informação da loja que ele ia visitar. Foi
+removido inteiro em 10/08/2026, junto com as seções de tela que o exibiam.
+
+**A regra: campo que o sistema não coleta não é devolvido.** Nada de valor
+padrão bonito para preencher espaço. Quando existir cadastro de endereço,
+horário e comodidades, eles voltam vindos do banco.
+
+O que a vitrine mostra hoje: nome da barbearia, nome do dono, sigla e cor
+(derivadas do nome), telefone — só na ficha individual, nunca na listagem —,
+serviços, equipe e as **avaliações reais** da tabela `avaliacoes`.
+
+Também saíram `loja.distancia` (não há geolocalização) e o estado inicial do
+coração de favorito (a rota pública não sabe quem está logado; o clique
+funciona e a rota devolve o estado novo).
+
 ## Deploy
 
 ### Variáveis obrigatórias
