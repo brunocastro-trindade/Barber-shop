@@ -9,6 +9,7 @@
     "dev:web": "vite",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.js",
     "db:reset": "node --env-file-if-exists=.env.local scripts/reset.js",
+    "db:migrar-banco": "node --env-file-if-exists=.env.local scripts/migrar-banco.js",
     "convite": "node --env-file-if-exists=.env.local scripts/convite.js",
     "smoke": "node --env-file-if-exists=.env.local scripts/smoke.js",
     "build": "vite build",
