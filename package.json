@@ -13,7 +13,7 @@
     "smoke": "node --env-file-if-exists=.env.local scripts/smoke.js",
     "build": "vite build",
     "start": "node --env-file-if-exists=.env.local server/index.js",
-    "release": "node scripts/migrate.js",
+    "release": "node --env-file-if-exists=.env.local scripts/migrate.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
