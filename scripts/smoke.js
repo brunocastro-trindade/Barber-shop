@@ -42,6 +42,11 @@ const email = `smoke-${Date.now()}@teste.local`;
 let barbeiroId = null;
 
 try {
+  // O rate limit agora vive no banco e sobrevive a restart (server/limiteStore.js).
+  // Sem zerar o balde deste IP, rodar o smoke duas vezes seguidas estoura o
+  // limite de /api/auth e as asserções falham por 429 sem nada estar quebrado.
+  await sql`delete from limites_uso where chave like 'ip:%'`;
+
   console.log("\n── Cadastro direto (SaaS) ─────────────────────────────────");
   const cadastro = await chamar("POST", "/auth/register", {
     nome: "Dono Teste", barbearia: "Barbearia Fumaça",
@@ -196,6 +201,10 @@ try {
   ok(soStatus.dados?.descricao === "Sem data" && soStatus.dados?.valor === 10,
     "os demais campos sobrevivem ao PATCH parcial", soStatus.dados);
 
+  // Guardado antes das seções que trocam de sessão, para a área do cliente
+  // conseguir voltar e ler o código gerado na ficha.
+  const cookieDono = cookie;
+
   console.log("\n── Limite de tentativas de login ────────────────────────");
   // E-mail descartável e inexistente: o contador é por e-mail, então isto não
   // tranca a conta de teste nem nenhuma real. E provar que um e-mail que não
@@ -218,6 +227,104 @@ try {
   // Outro e-mail não pode ter sido afetado: o bloqueio é por conta, não global.
   const outro = await chamar("POST", "/auth/login", { email: `outro-${codigo}@teste.local`, senha: "x" });
   ok(outro.status === 401, "outro e-mail continua livre — o bloqueio não é global", outro.status);
+
+  console.log("\n── Unidades e teto de funcionários ──────────────────────");
+  const u0 = await chamar("GET", "/unidades");
+  const teto = u0.dados?.limitePorUnidade;
+  ok(teto === 3, "o teto da fase de validação é 3, e vem do banco", u0.dados);
+  ok(u0.dados?.unidades?.length === 1 && u0.dados.unidades[0].nome === "Unidade principal",
+    "o cadastro já cria a Unidade principal", u0.dados?.unidades);
+  ok(u0.dados?.unidades?.[0]?.funcionarios === 1,
+    "o funcionário criado sem unidade caiu na principal", u0.dados?.unidades?.[0]);
+
+  // O teste do teto roda numa unidade separada, para não mexer na equipe que as
+  // seções anteriores usaram nas comissões.
+  const uT = await chamar("POST", "/unidades", { nome: "Unidade Teste" });
+  ok(uT.status === 201 && uT.dados?.vagas === teto, "criar unidade nasce com todas as vagas", uT.dados);
+
+  const ids = [];
+  for (const nome of ["Func 1", "Func 2", "Func 3"]) {
+    const r = await chamar("POST", "/equipe", { nome, unidade_id: uT.dados.id });
+    if (r.status === 201) ids.push(r.dados.id);
+  }
+  ok(ids.length === 3, "os 3 primeiros entram na unidade", ids.length);
+
+  const quarto = await chamar("POST", "/equipe", { nome: "Func 4", unidade_id: uT.dados.id });
+  ok(quarto.status === 409, "o 4º é recusado com 409", quarto);
+  ok(/limite|3/i.test(quarto.dados?.erro || ""), "e a mensagem explica o limite", quarto.dados?.erro);
+
+  // A unidade principal segue com vaga: o teto é por unidade, não por conta.
+  const naPrincipal = await chamar("POST", "/equipe", { nome: "Extra Principal" });
+  ok(naPrincipal.status === 201, "a outra unidade continua aceitando (teto é por unidade)", naPrincipal.status);
+  await chamar("DELETE", `/equipe/${naPrincipal.dados.id}`);
+
+  await chamar("PATCH", `/equipe/${ids[2]}`, { ativo: false });
+  const aposDesativar = await chamar("POST", "/equipe", { nome: "Func 4", unidade_id: uT.dados.id });
+  ok(aposDesativar.status === 201, "desativar alguém libera a vaga", aposDesativar.status);
+
+  const reativar = await chamar("PATCH", `/equipe/${ids[2]}`, { ativo: true });
+  ok(reativar.status === 409, "reativar acima do teto é recusado", reativar.status);
+
+  const apagarCheia = await chamar("DELETE", `/unidades/${uT.dados.id}`);
+  ok(apagarCheia.status === 409, "não dá para apagar unidade com gente dentro", apagarCheia.dados?.erro);
+
+  // Uma conta não pode cadastrar na unidade de outra.
+  const cookieDesteDono = cookie;
+  const outroEmail = `smoke2-${Date.now()}@teste.local`;
+  cookie = "";
+  const outra = await chamar("POST", "/auth/register", {
+    nome: "Outro Dono", barbearia: "Outra Barbearia",
+    whatsapp: "(11) 90000-0000", email: outroEmail, senha: "segredo123",
+  });
+  const invasao = await chamar("POST", "/equipe", { nome: "Intruso", unidade_id: uT.dados.id });
+  ok(invasao.status === 400, "unidade de outra conta é rejeitada", invasao);
+  await sql`delete from barbeiros where id = ${outra.dados.id}`;
+  cookie = cookieDesteDono;
+
+  console.log("\n── Área do cliente: telefone + código ───────────────────");
+  cookie = cookieDono;
+  const fichas = await chamar("GET", "/clientes");
+  const ficha = fichas.dados?.find(c => c.id === cliente.dados.id);
+  ok(/^[A-HJ-NP-Z2-9]{6}$/.test(ficha?.codigo_acesso || ""),
+    "cadastro manual já gera o código de acesso", ficha?.codigo_acesso);
+
+  cookie = "";
+  const semCodigo = await chamar("POST", "/publico/identificar", { telefone: "(11) 98888-0000" });
+  ok(semCodigo.status === 400, "só o telefone não entra", semCodigo.status);
+
+  const codigoErrado = await chamar("POST", "/publico/identificar", {
+    telefone: "(11) 98888-0000", codigo: "AAAAAA",
+  });
+  ok(codigoErrado.status === 401, "telefone certo com código errado não entra", codigoErrado.status);
+
+  const semSessaoCliente = await chamar("GET", "/publico/eu/horarios");
+  ok(semSessaoCliente.status === 401, "sem sessão de cliente, o histórico é negado", semSessaoCliente.status);
+
+  const entrou = await chamar("POST", "/publico/identificar", {
+    telefone: "(11) 98888-0000", codigo: ficha.codigo_acesso,
+  });
+  ok(entrou.status === 200 && entrou.dados?.nome === "João Cliente", "telefone + código entra", entrou);
+  ok(entrou.dados?.telefone === undefined, "a resposta não devolve o telefone de volta", entrou.dados);
+
+  const meus = await chamar("GET", "/publico/eu/horarios");
+  ok(meus.status === 200 && Array.isArray(meus.dados?.historico),
+    "o histórico vem pela sessão, sem id na URL", meus.status);
+
+  // Uma avaliação por barbearia, e só de quem foi atendido de verdade.
+  const av1 = await chamar("POST", `/publico/eu/avaliacoes/${barbeiroId}`, { nota: 5, texto: "Ótimo" });
+  ok(av1.status === 200, "quem já foi atendido consegue avaliar", av1);
+  const av2 = await chamar("POST", `/publico/eu/avaliacoes/${barbeiroId}`, { nota: 3, texto: "Mudei de ideia" });
+  ok(av2.status === 200, "reavaliar é permitido (substitui a nota)", av2);
+  const [{ qtd }] = await sql`
+    select count(*)::int as qtd from avaliacoes where barbeiro_id = ${barbeiroId}
+  `;
+  ok(qtd === 1, "e continua existindo UMA avaliação, não duas", qtd);
+
+  // O token de cliente não pode virar sessão de dono.
+  const tokenCliente = cookie.match(/cc_cliente=([^;]+)/)?.[1];
+  cookie = `cc_sessao=${tokenCliente}`;
+  const escalada = await chamar("GET", "/clientes");
+  ok(escalada.status === 401, "token de cliente não vira sessão de dono", escalada.status);
 
   console.log("\n── Isolamento entre contas ──────────────────────────────");
   cookie = "";

@@ -10,7 +10,7 @@
 
 import { Loader2, AlertTriangle, X, Star, Search } from "lucide-react";
 import { LP } from "../lib/tema.js";
-import { campoEstilo, distanciaCurta } from "./formatos.js";
+import { campoEstilo } from "./formatos.js";
 
 // ── Estados ───────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,11 @@ export const Estrelas = ({ nota, size = 13, mostrarNumero = true }) => (
 
 // Logo da barbearia: as iniciais num círculo com a cor da casa. Substitui a
 // imagem real que uma barbearia de verdade subiria no cadastro.
-export const LogoLoja = ({ loja, size = 48, comNota = false }) => {
+//
+// Sem o selo de nota que ficava no canto: a média vinha de `loja.nota`, que o
+// servidor devolvia como 4,9 fixo quando a barbearia não tinha avaliação
+// nenhuma. Estrela inventada em cima do nome de um negócio real.
+export const LogoLoja = ({ loja, size = 48 }) => {
   const cor = loja?.cor || LP.roxo;
   return (
     <div style={{ position: "relative", flexShrink: 0, width: size, height: size }}>
@@ -115,19 +119,6 @@ export const LogoLoja = ({ loja, size = 48, comNota = false }) => {
         letterSpacing: "-0.02em",
         boxShadow: `0 6px 20px ${cor}45`,
       }}>{loja?.sigla || "?"}</div>
-
-      {comNota && loja?.nota != null && (
-        <div style={{
-          position: "absolute", top: -4, right: -8,
-          display: "flex", alignItems: "center", gap: 2,
-          padding: "2px 6px", borderRadius: 999,
-          background: "#1A1428", border: `1px solid ${LP.border}`,
-          fontSize: 9.5, fontWeight: 800, color: "#F59E0B",
-        }}>
-          <Star size={8} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
-          {Number(loja.nota).toFixed(1)}
-        </div>
-      )}
     </div>
   );
 };
@@ -168,10 +159,12 @@ export const Chip = ({ children, ativo, onClick }) => (
   }}>{children}</button>
 );
 
-export const Campo = ({ rotulo, ...props }) => (
+// `style` recebido soma-se ao estilo base em vez de substituí-lo: com o spread
+// depois do style, quem passasse `style` perdia borda, fundo e espaçamento.
+export const Campo = ({ rotulo, style, ...props }) => (
   <div style={{ marginBottom: 14 }}>
     {rotulo && <Rotulo>{rotulo}</Rotulo>}
-    <input style={campoEstilo} {...props} />
+    <input {...props} style={{ ...campoEstilo, ...style }} />
   </div>
 );
 
@@ -197,15 +190,13 @@ export const LinhaLoja = ({ loja, onClick, direita }) => (
     display: "flex", alignItems: "center", gap: 14, padding: "14px 4px",
     borderBottom: `1px solid ${LP.border}`, cursor: "pointer",
   }}>
-    <LogoLoja loja={loja} size={48} comNota />
+    <LogoLoja loja={loja} size={48} />
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 3 }}>{loja.nome}</div>
-      <div style={{ fontSize: 12, color: LP.dim, lineHeight: 1.5 }}>
-        {loja.endereco} — {loja.cidade}
-      </div>
-      <div style={{ fontSize: 12, color: LP.roxoClaro, marginTop: 4, fontWeight: 600 }}>
-        {distanciaCurta(loja.distancia)}
-      </div>
+      {/* Saíram daqui o endereço e a cidade (fixos no código, iguais para toda
+          barbearia) e a distância, que nunca teve fonte de dados: não há
+          geolocalização nem endereço cadastrado. Sobra o dono, que é real. */}
+      <div style={{ fontSize: 12, color: LP.dim, lineHeight: 1.5 }}>{loja.dono}</div>
     </div>
     {direita}
   </div>

@@ -115,25 +115,18 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
     }
   };
 
-  const entrarDemo = async () => {
-    setErro(""); setEnviando(true);
-    const creds = { email: "demo@barbearia.com", senha: "demo123" };
-    try {
-      onSuccess(await api.auth.entrar(creds));
-    } catch {
-      try {
-        onSuccess(await api.auth.cadastrar({
-          nome: "Barbeiro Mestre",
-          barbearia: "Barbearia Premium Demo",
-          whatsapp: "(11) 99999-8888",
-          ...creds,
-        }));
-      } catch (errCad) {
-        setErro(errCad.message);
-        setEnviando(false);
-      }
-    }
-  };
+  // Aqui existia um `entrarDemo`, ligado a um botão "Acessar Painel Demo
+  // (1-Clique)" logo abaixo do formulário. Ele entrava com
+  // `demo@barbearia.com` / `demo123` e, se a conta não existisse, **criava a
+  // conta** com essas mesmas credenciais e entrava assim mesmo.
+  //
+  // Na prática era uma porta dos fundos permanente: qualquer visitante da tela
+  // de login abria um painel completo em um clique, e apagar a conta no banco
+  // não resolvia — o clique seguinte a recriava. As credenciais ainda ficavam
+  // legíveis no bundle enviado ao navegador.
+  //
+  // Não recoloque um atalho de acesso aqui. Para demonstrar o produto, crie uma
+  // conta real com senha própria e entregue as credenciais a quem for ver.
 
   return (
     <div style={molduraAuth}>
@@ -155,17 +148,6 @@ export const LoginPage = ({ onSuccess, onRegister, onBack }) => {
 
           <button type="submit" disabled={enviando} style={botaoPrimario(enviando)}>
             {enviando ? "Entrando..." : "Entrar →"}
-          </button>
-
-          <button type="button" disabled={enviando} onClick={entrarDemo}
-            style={{
-              width: "100%", marginTop: 10, padding: 11, borderRadius: 999,
-              background: "rgba(252,87,10,0.15)", color: "#fc570a",
-              border: "1px solid rgba(252,87,10,0.4)", fontSize: 13,
-              fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}>
-            ⚡ Acessar Painel Demo (1-Clique)
           </button>
 
           <div style={{ marginTop: 14, textAlign: "center", fontSize: 11, color: B.dim, lineHeight: 1.6 }}>

@@ -16,55 +16,48 @@
 //    estão na base — a mesma razão pela qual "e-mail ou senha incorretos" é uma
 //    mensagem só.
 //
-// 3. Fica em memória, não no banco. O ataque que isto barra é adivinhação de
-//    senha, e quem ataca não reinicia o nosso servidor. Reiniciar zera os
-//    contadores, e é aceitável enquanto for um processo só. **Se um dia rodar
-//    em mais de uma instância, isto precisa ir para o banco** — cada processo
-//    teria a sua contagem, e o limite real viraria 3 × número de instâncias.
+// 3. Fica no BANCO, não em memória. Era um `Map` deste processo, e o próprio
+//    comentário aqui avisava: com mais de uma instância, cada uma teria a sua
+//    contagem e o limite real viraria 3 × número de instâncias. Reiniciar o
+//    servidor também perdoava quem estava sendo barrado — e reiniciar é coisa
+//    que todo deploy faz. Agora as instâncias somam a mesma contagem.
+
+import { registrar, consultar, zerar } from "./limiteStore.js";
 
 const MAX_FALHAS = 3;
-const BLOQUEIO_MS = 15 * 60 * 1000;
+const BLOQUEIO_SEGUNDOS = 15 * 60;
 
-// email → { falhas, bloqueadoAte }
-const registro = new Map();
-
-const chave = (email) => String(email || "").trim().toLowerCase();
-
-// Varre o mapa de vez em quando para ele não crescer sem limite com e-mails
-// tentados uma vez e nunca mais. Barato: roda a cada 200 chamadas.
-let desdeALimpeza = 0;
-function limparVencidos(agora) {
-  if (++desdeALimpeza < 200) return;
-  desdeALimpeza = 0;
-  for (const [email, dados] of registro) {
-    if (!dados.bloqueadoAte || dados.bloqueadoAte <= agora) registro.delete(email);
-  }
-}
+const chave = (email) => `login:${String(email || "").trim().toLowerCase()}`;
 
 // Devolve os minutos que faltam se estiver bloqueado, ou 0 se pode tentar.
-export function minutosDeBloqueio(email) {
-  const dados = registro.get(chave(email));
-  if (!dados?.bloqueadoAte) return 0;
-
-  const restante = dados.bloqueadoAte - Date.now();
-  if (restante <= 0) {
-    registro.delete(chave(email));
+export async function minutosDeBloqueio(email) {
+  try {
+    const { contagem, faltamSegundos } = await consultar(chave(email));
+    if (contagem < MAX_FALHAS || faltamSegundos <= 0) return 0;
+    return Math.ceil(faltamSegundos / 60);
+  } catch (e) {
+    // Sem banco não há login de qualquer forma: a consulta seguinte falharia.
+    // Deixar passar aqui dá a mensagem certa em vez de um 429 enganoso.
+    console.error(JSON.stringify({ nivel: "erro", onde: "tentativas.consultar", msg: e.message }));
     return 0;
   }
-  return Math.ceil(restante / 60000);
 }
 
-export function registrarFalha(email) {
-  const agora = Date.now();
-  limparVencidos(agora);
-
-  const k = chave(email);
-  const dados = registro.get(k) || { falhas: 0, bloqueadoAte: 0 };
-  dados.falhas += 1;
-  if (dados.falhas >= MAX_FALHAS) dados.bloqueadoAte = agora + BLOQUEIO_MS;
-  registro.set(k, dados);
+export async function registrarFalha(email) {
+  try {
+    // Janela deslizante: cada erro novo empurra o vencimento para 15 minutos à
+    // frente. Sem isso, quem errasse três vezes no fim da janela seria liberado
+    // segundos depois.
+    await registrar(chave(email), BLOQUEIO_SEGUNDOS, { deslizante: true });
+  } catch (e) {
+    console.error(JSON.stringify({ nivel: "erro", onde: "tentativas.registrar", msg: e.message }));
+  }
 }
 
-export function limparTentativas(email) {
-  registro.delete(chave(email));
+export async function limparTentativas(email) {
+  try {
+    await zerar(chave(email));
+  } catch (e) {
+    console.error(JSON.stringify({ nivel: "erro", onde: "tentativas.zerar", msg: e.message }));
+  }
 }
