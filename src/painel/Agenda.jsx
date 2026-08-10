@@ -163,7 +163,7 @@ export const Agenda = () => {
                         {a && celula.comeca && (
                           <div onClick={() => setSelecionadoId(a.id)}
                             style={{ background: c + "25", border: `0.5px solid ${c}`, borderRadius: 5, padding: "3px 6px", fontSize: 10, color: c, lineHeight: 1.3, cursor: "pointer", fontWeight: ativo ? 700 : 400 }}>
-                            {a.cliente_nome} — {a.servico_nome}
+                            {a.cliente_nome} · {a.servico_nome}
                           </div>
                         )}
                         {a && !celula.comeca && (

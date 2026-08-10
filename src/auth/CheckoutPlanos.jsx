@@ -3,6 +3,17 @@ import { Check, CreditCard, QrCode, ShieldCheck, Zap } from "lucide-react";
 import { B, N } from "../ui/tokens.js";
 import { Girando } from "../ui/base.jsx";
 
+// Os limites por plano descritos aqui NAO sao aplicados pelo sistema.
+//
+// Estas telas prometiam "1 barbeiro", "ate 5" e "ilimitados" conforme o plano.
+// O sistema impoe 3 funcionarios ativos POR UNIDADE para todo mundo — o teto
+// vem de `cc_limite_equipe_por_unidade()` em db/schema.sql — e o plano
+// escolhido aqui nao e gravado em lugar nenhum: nao ha coluna, nao ha cobranca
+// e nada muda de comportamento depois do cadastro.
+//
+// Enquanto for assim, o texto diz a verdade. Ao ligar os planos de verdade
+// (gravar a escolha e derivar o teto dela), estes rotulos mudam junto — e o
+// numero abaixo precisa acompanhar a funcao do banco.
 const PLANOS = [
   {
     id: "solo",
@@ -11,7 +22,7 @@ const PLANOS = [
     mensal: "Sob consulta",
     anual: "Sob consulta",
     recursos: [
-      "1 barbeiro / profissional",
+      "Até 3 funcionários por unidade",
       "Agendamentos ilimitados",
       "Área do Cliente mobile",
       "Fila de espera em tempo real",
@@ -27,7 +38,7 @@ const PLANOS = [
     mensal: "Sob consulta",
     anual: "Sob consulta",
     recursos: [
-      "Até 5 barbeiros na equipe",
+      "Até 3 funcionários por unidade",
       "Comissão automática por barbeiro",
       "Agendamentos & Fila em tempo real",
       "Controle financeiro & estoque",
@@ -42,7 +53,7 @@ const PLANOS = [
     mensal: "Sob consulta",
     anual: "Sob consulta",
     recursos: [
-      "Barbeiros ilimitados",
+      "Até 3 funcionários por unidade",
       "Múltiplas unidades / filiais",
       "Exportação completa em PDF",
       "Suporte prioritário 24/7",
@@ -119,6 +130,15 @@ export const CheckoutPlanos = ({ onConcluir, onBack, onLogin }) => {
               </h1>
               <p style={{ fontSize: 15, color: B.muted, margin: 0 }}>
                 O acesso ao painel é liberado após a confirmação da assinatura.
+              </p>
+
+              {/* Os três planos exibem o mesmo limite de equipe porque é isso
+                  que o sistema faz hoje. Sem este aviso, a repetição pareceria
+                  erro de tela. */}
+              <p style={{ fontSize: 13, color: B.dim, margin: "10px 0 0", lineHeight: 1.6, maxWidth: 560 }}>
+                Fase de validação: todos os planos operam com o mesmo limite de
+                equipe, e os preços ainda não estão definidos. A diferença entre
+                eles passa a valer quando a cobrança começar.
               </p>
 
               {/* Toggle Mensal / Anual */}

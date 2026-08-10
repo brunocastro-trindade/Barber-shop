@@ -385,18 +385,18 @@ export const LandingPage = ({ onLogin, onRegister, onCliente }) => {
             {
               nome: "Solo",
               desc: "Para barbeiros autônomos que atendem sozinhos",
-              recursos: ["1 profissional", "Agendamentos ilimitados", "Área do cliente mobile", "Fila de espera em tempo real", "Ficha do cliente & histórico", "Suporte via WhatsApp"],
+              recursos: ["Até 3 funcionários por unidade", "Agendamentos ilimitados", "Área do cliente mobile", "Fila de espera em tempo real", "Ficha do cliente & histórico", "Suporte via WhatsApp"],
             },
             {
               nome: "Equipe",
               destaque: true,
               desc: "Para barbearias com múltiplos barbeiros e equipe",
-              recursos: ["Até 5 barbeiros na equipe", "Comissões automáticas por barbeiro", "Agendamentos & Fila em tempo real", "Controle financeiro & estoque", "Relatórios de faturamento", "Todas as funções do plano Solo"],
+              recursos: ["Até 3 funcionários por unidade", "Comissões automáticas por barbeiro", "Agendamentos & Fila em tempo real", "Controle financeiro & estoque", "Relatórios de faturamento", "Todas as funções do plano Solo"],
             },
             {
               nome: "Pro / Redes",
               desc: "Para redes de barbearia e operações de grande fluxo",
-              recursos: ["Barbeiros ilimitados", "Múltiplas unidades", "Exportação completa em PDF", "Suporte prioritário 24/7", "Gestão avançada de assinaturas", "Todas as funções do plano Equipe"],
+              recursos: ["Até 3 funcionários por unidade", "Múltiplas unidades", "Exportação completa em PDF", "Suporte prioritário 24/7", "Gestão avançada de assinaturas", "Todas as funções do plano Equipe"],
             },
           ].map((p, i) => {
             const ehDestaque = p.destaque;

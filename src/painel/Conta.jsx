@@ -18,7 +18,7 @@ export const Taxas = ({ user }) => (
         </div>
       </Card>
       <Card title="Taxas de maquininha" style={{ flex: 1 }}>
-        {[["Débito", "1,5%"], ["Crédito à vista", "2,5%"], ["Crédito 2×", "3,2%"], ["Crédito 3×–6×", "4,0%"], ["PIX", "0,99%"]].map((t, i) => (
+        {[["Débito", "1,5%"], ["Crédito à vista", "2,5%"], ["Crédito 2×", "3,2%"], ["Crédito 3× a 6×", "4,0%"], ["PIX", "0,99%"]].map((t, i) => (
           <Row key={i} style={{ justifyContent: "space-between", borderBottom: `0.5px solid ${B.border}`, padding: "9px 0" }}>
             <span style={{ fontSize: 12, color: B.text }}>{t[0]}</span>
             <div style={{ height: 30, width: 80, background: B.bg2, border: `0.5px solid ${B.border2}`, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: B.text }}>{t[1]}</div>
