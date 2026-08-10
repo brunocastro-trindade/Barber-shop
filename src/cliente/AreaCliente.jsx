@@ -230,11 +230,21 @@ function AbaInicio({ cliente, onAbrirLoja, onBuscar }) {
             ))}
           </div>
 
-          {dados.favoritos.length > 0 && (
+          {/* `favoritas` e `acessos`, com os nomes que o servidor manda em
+              GET /publico/eu/inicio. A tela lia `favoritos` e `recentes` — os
+              nomes que o antigo modo demonstração usava —, então `.length` de
+              `undefined` derrubava o React e a área do cliente abria EM BRANCO
+              logo depois do login. Ficou escondido enquanto tudo caía na
+              demonstração; sumiu junto com ela.
+
+              O `?? []` não é enfeite: página em branco é o pior modo de falha
+              possível, e um campo a menos na resposta não pode voltar a causar
+              isso. */}
+          {(dados.favoritas ?? []).length > 0 && (
             <div style={{ marginBottom: 26 }}>
               <Rotulo>Suas favoritas</Rotulo>
               <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 6 }}>
-                {dados.favoritos.map(l => (
+                {dados.favoritas.map(l => (
                   <div key={l.id} onClick={() => onAbrirLoja(l.id)} style={{ width: 78, textAlign: "center", cursor: "pointer", flexShrink: 0 }}>
                     <div style={{ display: "flex", justifyContent: "center", marginBottom: 9 }}>
                       <LogoLoja loja={l} size={62} comNota />
@@ -246,10 +256,10 @@ function AbaInicio({ cliente, onAbrirLoja, onBuscar }) {
             </div>
           )}
 
-          {dados.recentes.length > 0 && (
+          {(dados.acessos ?? []).length > 0 && (
             <div>
               <Rotulo>Últimos acessos</Rotulo>
-              {dados.recentes.map(l => (
+              {dados.acessos.map(l => (
                 <LinhaLoja key={l.id} loja={l} onClick={() => onAbrirLoja(l.id)}
                   direita={<ChevronRight size={18} color={LP.dim} strokeWidth={2} />} />
               ))}
@@ -463,7 +473,10 @@ function AbaMenu({ cliente, onAbrirLoja, onSair, onVoltarSite }) {
       .then(d => { if (ativo) setDados(d); })
       .catch(() => { /* o resumo é opcional */ });
     api.publico.inicio()
-      .then(d => { if (ativo) setFavoritos(d.favoritos); })
+      // `favoritas`, com o nome que o servidor manda. Lia-se `d.favoritos` —
+      // nome do antigo modo demonstração —, o estado virava `undefined` e o
+      // `favoritos.length` logo abaixo derrubava a aba Menu inteira.
+      .then(d => { if (ativo) setFavoritos(d.favoritas ?? []); })
       .catch(() => { /* idem */ });
     return () => { ativo = false; };
   }, [cliente.id]);

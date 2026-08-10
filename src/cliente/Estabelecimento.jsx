@@ -551,8 +551,10 @@ const AbaAvaliacoes = ({ cliente, loja, onAvaliou }) => {
         </Cartao>
       )}
 
-      {loja.avaliacoes.length === 0 && <Vazio titulo="Ainda sem avaliações" texto="Seja o primeiro a avaliar." />}
-      {loja.avaliacoes.map((a, i) => (
+      {/* `?? []` porque uma resposta sem este campo já derrubou esta tela
+          inteira, e página em branco é o pior modo de falha que existe. */}
+      {(loja.avaliacoes ?? []).length === 0 && <Vazio titulo="Ainda sem avaliações" texto="Seja o primeiro a avaliar." />}
+      {(loja.avaliacoes ?? []).map((a, i) => (
         <div key={i} style={{ display: "flex", gap: 13, padding: "15px 4px", borderBottom: `1px solid ${LP.border}` }}>
           <Inicial nome={a.nome} size={40} cor={a.minha ? LP.roxo : "#64748B"} />
           <div style={{ flex: 1, minWidth: 0 }}>

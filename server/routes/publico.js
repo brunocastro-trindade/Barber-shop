@@ -21,10 +21,31 @@ const eUUID = (str) =>
 // quer ligar. Já na LISTA, devolver o telefone de todas as barbearias entrega,
 // numa requisição sem autenticação, a agenda inteira de donos do sistema —
 // pronta para spam. Lista sai sem contato; ficha sai com.
+// Iniciais e cor do selo da barbearia, derivadas do nome.
+//
+// A tela desenha um quadrado com a sigla sobre um degradê (ver LogoLoja em
+// src/cliente/ui.jsx). Os dois campos vinham do antigo modo demonstração e a
+// rota nunca os mandou: sem eles o selo saía vazio e sem cor. Derivar do nome
+// mantém a mesma barbearia sempre com a mesma cor, sem coluna nova no banco.
+const PALETA = ["#7C3AED", "#fc570a", "#0EA5E9", "#10B981", "#F59E0B", "#EC4899"];
+
+const siglaDe = (nome) =>
+  String(nome || "Barbearia")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(p => p[0].toUpperCase()).join("") || "B";
+
+const corDe = (chave) => {
+  let soma = 0;
+  for (const c of String(chave || "")) soma = (soma + c.charCodeAt(0)) % 997;
+  return PALETA[soma % PALETA.length];
+};
+
 const resumoBarbearia = (b, { contato = false } = {}) => ({
   id: b.id,
   nome: b.barbearia || "Barbearia",
   dono: b.nome || "Proprietário",
+  sigla: siglaDe(b.barbearia),
+  cor: corDe(b.id || b.barbearia),
   telefone: contato ? b.whatsapp || "" : "",
   whatsapp: contato ? b.whatsapp || "" : "",
   endereco: "Rua Principal, 100",
@@ -144,9 +165,28 @@ router.get("/barbearias/:id", async (req, res) => {
   `;
   if (!b) return res.status(404).json({ erro: "Barbearia não encontrada." });
 
-  const [servicos, equipe] = await Promise.all([
+  // `avaliacoes` sai daqui porque a aba de avaliações da ficha as lê.
+  //
+  // A rota nunca as devolveu: a tela vinha lendo `loja.avaliacoes`, campo que só
+  // existia no antigo modo demonstração. Sem ele, `.length` de `undefined`
+  // derrubava o React e a ficha abria em branco — e, mesmo sem quebrar, a aba
+  // ficaria vazia para sempre, apesar de a tabela existir e a rota de avaliar
+  // já gravar nela.
+  //
+  // O primeiro nome basta: quem avalia é cliente de uma barbearia, não precisa
+  // ter o nome completo exposto para os outros clientes dela.
+  const [servicos, equipe, avaliacoes] = await Promise.all([
     sql`select id, nome, preco::float8 as preco, duracao_min as duracao from servicos where barbeiro_id = ${b.id} and ativo = true order by nome`,
     sql`select id, nome, 'Barbeiro' as cargo, 5.0 as nota from equipe where barbeiro_id = ${b.id} and ativo = true order by nome`,
+    sql`
+      select split_part(c.nome, ' ', 1) as nome, a.nota, a.texto,
+             to_char(a.criado_em, 'YYYY-MM-DD') as data
+        from avaliacoes a
+        join clientes c on c.id = a.cliente_id
+       where a.barbeiro_id = ${b.id}
+       order by a.criado_em desc
+       limit 30
+    `,
   ]);
 
   // Ficha de uma barbearia só: aqui o telefone é o contato que o cliente veio buscar.
@@ -154,6 +194,7 @@ router.get("/barbearias/:id", async (req, res) => {
   res.json({
     ...resumo,
     servicos,
+    avaliacoes,
     barbeiros: equipe.length ? equipe : [{ id: b.id, nome: b.nome, cargo: "Proprietário", nota: 5.0 }],
   });
 });
