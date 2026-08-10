@@ -1,0 +1,81 @@
+# Blueprint da Render — https://render.com/docs/blueprint-spec
+#
+# Com este arquivo no repositório, a Render configura o serviço sozinha:
+# no painel, "New +" → "Blueprint" → aponte para este repositório. Só dois
+# segredos precisam ser digitados à mão (ver `sync: false` abaixo).
+#
+# A aplicação é UM processo Node que serve a API e o front compilado. Não há
+# estado em memória entre requisições — rate limit e bloqueio de login vivem na
+# tabela `limites_uso` —, então mais de uma instância funciona sem ajuste.
+
+services:
+  - type: web
+    name: cutflow
+    runtime: node
+    plan: free
+
+    # Ohio é a região mais próxima do banco.
+    #
+    # O Neon deste projeto está em `sa-east-1` (São Paulo) e a Render não tem
+    # região na América do Sul. Ohio é a de menor latência entre as opções;
+    # ainda assim, cada consulta paga a ida e volta até São Paulo (~120 ms).
+    # Ver a nota sobre latência no fim deste arquivo.
+    region: ohio
+
+    # `npm ci`, e não `npm install`: respeita o package-lock que foi testado.
+    # As dependências estão com `^` e um install solto pode resolver para um
+    # minor diferente do que passou no smoke.
+    #
+    # `npm run release` aplica db/schema.sql. Está aqui, no build, porque o
+    # `preDeployCommand` — o lugar certo para a fase de release — só existe nos
+    # planos pagos. A migração é idempotente e só adiciona, então rodá-la no
+    # build é seguro. Ao migrar para um plano pago, mova-a para
+    # `preDeployCommand` e tire daqui.
+    buildCommand: npm ci && npm run build && npm run release
+    startCommand: npm start
+
+    # O servidor responde {"ok":true} nesta rota sem tocar no banco: serve para
+    # a Render saber que a instância subiu, e não vira consulta a cada checagem.
+    healthCheckPath: /api/health
+
+    envVars:
+      # Liga o `secure` do cookie de sessão e o HSTS. Sem isto o cookie
+      # trafega em HTTP puro — o servidor avisa em voz alta no log.
+      - key: NODE_ENV
+        value: production
+
+      # A Render fica atrás de um proxy. Sem isto, todos os visitantes chegam
+      # com o IP do proxy e dividem o mesmo balde de rate limit: o primeiro
+      # abusador bloquearia todo mundo.
+      - key: TRUST_PROXY
+        value: "1"
+
+      # Gerado pela Render (256 bits em base64, bem acima do mínimo de 32
+      # caracteres que server/auth.js exige). Trocar este valor desconecta
+      # todas as sessões ativas.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # `sync: false` = a Render pede este valor no painel e NÃO o guarda no
+      # repositório. É a connection string do Neon; use a opção "Pooled
+      # connection" e mantenha o sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+
+# ── Duas coisas para decidir antes de abrir aos testadores ────────────────────
+#
+# 1. PLANO FREE HIBERNA.
+#    No free, a instância dorme após ~15 min sem tráfego e o próximo acesso
+#    espera ~50 s pelo start. Para um teste em que barbearias reais vão abrir o
+#    link, isso parece "o site caiu". O plano Starter mantém de pé e libera o
+#    `preDeployCommand`.
+#
+# 2. LATÊNCIA ATÉ O BANCO.
+#    Aplicação em Ohio, banco em São Paulo: ~120 ms por ida e volta. As rotas
+#    com rate limit (/api/auth e /api/publico) fazem UMA consulta a mais por
+#    requisição, para o contador compartilhado — logo, ~240 ms só de rede antes
+#    de a rota começar o trabalho dela.
+#
+#    Se isso incomodar, a saída é aproximar os dois: criar o banco Neon em
+#    `us-east-2` (Ohio) e migrar os dados, em vez de mexer no rate limit — o
+#    contador precisa ser compartilhado entre instâncias.
