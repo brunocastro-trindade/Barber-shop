@@ -171,6 +171,108 @@ Também saíram `loja.distancia` (não há geolocalização) e o estado inicial 
 coração de favorito (a rota pública não sabe quem está logado; o clique
 funciona e a rota devolve o estado novo).
 
+## Checklist de blindagem do banco
+
+Verificado no projeto em 11/08/2026. Marcado com o que foi conferido, não com o
+que se espera. `[x]` = confirmado por medição; `[ ]` = pendente de fato.
+
+### [x] 1. Connection string só no servidor
+
+Conferido no bundle de produção: **zero ocorrências** de `postgresql://`,
+`neon.tech`, `DATABASE_URL` ou `JWT_SECRET`. Não existe nenhuma variável `VITE_`
+nem `import.meta.env` em `src/` — o front não lê ambiente, só fala com `/api`.
+
+O risco do prefixo `VITE_` é real e vale saber: qualquer variável com esse
+prefixo entra no bundle e vira pública. Aqui não há nenhuma, e não deve passar a
+haver.
+
+### [ ] 2. RLS — depende de a Data API estar ligada
+
+**RLS está desligado nas 16 tabelas.** Hoje isso não é exposição, porque o único
+caminho até o banco é o servidor Node, que filtra por `barbeiro_id` em toda
+consulta (`server/crud.js` e as rotas). RLS seria uma segunda trava, não a
+primeira.
+
+Vira exposição **se a Data API do Neon estiver habilitada**, porque aí as tabelas
+ficam alcançáveis por HTTP sem passar pelo servidor. Isso é configuração de
+projeto no console da Neon, não dá para ver por SQL — **confira lá**.
+
+Duas observações que mudam o cálculo:
+
+- O papel da aplicação tem **`bypassrls = true`**. Ligar RLS sem trocar o papel
+  não muda nada: ele ignora as políticas. RLS depende do item 3.
+- O banco ANTIGO (São Paulo) tinha um schema `neon_auth` provisionado, com
+  `user`, `session`, `jwks`, `organization` — origem da coluna órfã
+  `barbeiros.auth_user_id`. O banco NOVO (Ohio) **não tem**: só `public`. A
+  migração deixou essa superfície abandonada para trás, o que é bom.
+
+### [ ] 3. Papel de menor privilégio — lacuna real
+
+A aplicação conecta como `neondb_owner`, que tem:
+
+```
+createdb: true   createrole: true   bypassrls: true   CREATE no schema public
+```
+
+Ou seja, a credencial que a aplicação carrega pode criar bancos, criar papéis e
+ignorar RLS. Vazando essa string, perde-se o projeto inteiro, não só os dados.
+
+O desenho certo são dois papéis:
+
+```sql
+-- Papel da aplicação: só o que as rotas precisam.
+create role cutflow_app login password '<forte>';
+grant usage on schema public to cutflow_app;
+grant select, insert, update, delete on all tables in schema public to cutflow_app;
+grant usage, select on all sequences in schema public to cutflow_app;
+-- Sem CREATE, sem DROP, sem createdb/createrole/bypassrls.
+```
+
+**Atenção ao aplicar:** `npm run release` roda `db/schema.sql`, que faz DDL
+(`create table`, `alter table`, `create trigger`). Ele precisa continuar usando
+o papel dono. Na prática: `DATABASE_URL` da aplicação aponta para `cutflow_app`,
+e a fase de release usa uma variável separada com o papel dono. Como hoje o
+release roda dentro do `buildCommand` (ver `render.yaml`), essa separação exige
+mudar o comando — não é troca de uma linha.
+
+### [ ] 4. Testar em branch efêmera, não em produção
+
+Os testes de injeção desta análise rodaram contra o banco de desenvolvimento, e
+criaram e apagaram contas nele. Funcionou porque não há dado real ainda.
+
+Depois que houver barbearia de verdade, teste em branch: no console da Neon,
+**Branches → New branch** a partir de `main`, use a connection string dela e
+apague no fim. A branch nasce com os dados copiados e não afeta produção.
+
+### [~] 5. Rate limit e validação na borda
+
+**Rate limit: feito.** `server/rateLimit.js` com contagem compartilhada em
+`limites_uso`, escopo por rota, e limite estrito de 10/15min em
+`/api/publico/identificar`. Bloqueio de login por e-mail em `server/tentativas.js`.
+
+**Validação: existe, mas é artesanal.** `textoObrigatorio` e `numeroNaFaixa` em
+`server/crud.js`, mais checagens espalhadas nas rotas (`eUUID`, faixa de nota,
+tipo de cliente). Cobre o que as telas mandam; não é um schema declarado.
+
+Zod cortaria payload malformado num lugar só e documentaria o contrato — mas é
+dependência nova e reescrita de validação em todas as rotas. **Não é urgente
+para injeção de SQL** (as consultas são parametrizadas; 33 payloads reais não
+passaram), e sim para robustez e clareza. Fica como melhoria, não como correção.
+
+### [ ] 6. Rodar a senha do banco — não estava na lista e é o mais urgente
+
+A `DATABASE_URL` do banco novo foi colada em conversa e deve ser considerada
+exposta. Enquanto ela valer, todo o resto deste checklist é secundário: quem tem
+a string entra pelo console SQL e nenhuma defesa da aplicação alcança isso.
+
+Console da Neon → projeto → **Roles** → `neondb_owner` → **Reset password**, e
+atualize a variável na Render.
+
+### [ ] 7. Apagar o projeto Neon antigo depois do corte
+
+O banco de São Paulo continua de pé, com uma cópia da conta admin. Enquanto os
+dois existirem, é fácil apontar para o errado sem perceber.
+
 ## Deploy
 
 ### Variáveis obrigatórias
