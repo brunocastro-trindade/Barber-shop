@@ -370,6 +370,21 @@ O servidor **avisa em voz alta no start** quando `NODE_ENV` não é `production`
 ou quando está em produção com `TRUST_PROXY=0`. Se esses avisos aparecerem no
 log de produção, a configuração está errada.
 
+### Versão do Node
+
+`engines.node` é **`>=22 <25`**, e o teto existe de propósito.
+
+Com `>=22.0.0` sem teto, a Render escolheu **Node 26.7.0** — enquanto o projeto
+é desenvolvido e testado no **24**. O build passou, mas rodar em produção uma
+versão que nunca foi exercitada aqui é risco à toa: basta um Node novo mudar
+comportamento no meio de um teste com barbearias reais.
+
+A faixa aceita 22 e 24 (as LTS) e recusa 25 e 26. O piso é 22 porque o código
+usa `--env-file-if-exists` e `getSetCookie`.
+
+Ao subir o Node local, suba o teto junto — depois de rodar `npm run smoke` e
+`npm run isolamento` na versão nova.
+
 ### Ordem do deploy
 
 ```bash
