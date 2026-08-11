@@ -40,15 +40,20 @@ services:
     # papel que a aplicação usa em runtime (`cutflow_app`) NÃO consegue rodá-las
     # — testado: "permission denied for schema public". É esse o objetivo.
     #
-    # Por isso a linha abaixo troca a DATABASE_URL só para o release, usando
-    # DATABASE_URL_MIGRACAO (o papel dono). O processo que atende requisição
-    # continua subindo com a DATABASE_URL restrita, e uma credencial vazada
-    # dali não cria tabela, não apaga nada e não cria papel.
+    # `npm run release` escolhe a credencial sozinho: usa
+    # DATABASE_URL_MIGRACAO (papel dono) quando existe, e cai para DATABASE_URL
+    # quando não. A escolha mora em scripts/migrate.js, e não numa linha de
+    # shell aqui — porque aqui ela falhava calada: com a variável ausente,
+    # `DATABASE_URL="$DATABASE_URL_MIGRACAO"` virava string vazia e o erro
+    # apontava para a variável errada.
+    #
+    # O processo que atende requisição sobe com a DATABASE_URL restrita, e uma
+    # credencial vazada dali não cria tabela, não apaga nada e não cria papel.
     #
     # O release está no build porque `preDeployCommand` só existe nos planos
     # pagos. A migração é idempotente e só adiciona. Ao migrar para um plano
     # pago, mova a última parte para `preDeployCommand`.
-    buildCommand: npm ci --include=dev && npm run build && DATABASE_URL="$DATABASE_URL_MIGRACAO" npm run release
+    buildCommand: npm ci --include=dev && npm run build && npm run release
     startCommand: npm start
 
     # O servidor responde {"ok":true} nesta rota sem tocar no banco: serve para

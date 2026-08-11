@@ -1,5 +1,22 @@
-// Aplica db/schema.sql no banco apontado por DATABASE_URL.
-// Uso: npm run db:migrate
+// Aplica db/schema.sql no banco.
+// Uso: npm run db:migrate (local) · npm run release (deploy)
+//
+// ── Qual credencial esta migração usa ────────────────────────────────────────
+//
+// `DATABASE_URL_MIGRACAO` primeiro, `DATABASE_URL` como alternativa.
+//
+// Em produção a aplicação roda com um papel restrito, que de propósito NÃO faz
+// DDL (ver o checklist em CONTEXT.md). O schema tem 46 instruções de DDL, então
+// a migração precisa do papel dono, que vive numa variável separada.
+//
+// A escolha mora aqui, e não numa linha de shell no render.yaml, porque lá ela
+// falhava calada: `DATABASE_URL="$DATABASE_URL_MIGRACAO" npm run release` com a
+// variável ausente vira `DATABASE_URL=""`, e o erro que aparecia era
+// "DATABASE_URL não definida" — apontando para a variável errada. Aqui a
+// mensagem diz exatamente qual falta.
+//
+// Onde só existe DATABASE_URL (máquina de quem desenvolve), a alternativa faz o
+// comando seguir funcionando sem configuração extra.
 import { Client } from "@neondatabase/serverless";
 import fs from "node:fs";
 import path from "node:path";
@@ -7,13 +24,25 @@ import { fileURLToPath } from "node:url";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-if (!process.env.DATABASE_URL) {
-  console.error("\nDATABASE_URL não definida. Crie o .env.local a partir do .env.example.\n");
+const url = process.env.DATABASE_URL_MIGRACAO || process.env.DATABASE_URL;
+
+if (!url) {
+  console.error(
+    "\nNenhuma connection string para migrar.\n" +
+    "  Em deploy:  defina DATABASE_URL_MIGRACAO com o papel DONO do banco.\n" +
+    "  Na sua máquina: DATABASE_URL no .env.local (veja o .env.example).\n"
+  );
   process.exit(1);
 }
 
+console.log(
+  process.env.DATABASE_URL_MIGRACAO
+    ? "Migrando com DATABASE_URL_MIGRACAO (papel dono)."
+    : "Migrando com DATABASE_URL (DATABASE_URL_MIGRACAO não definida)."
+);
+
 const schema = fs.readFileSync(path.join(raiz, "db", "schema.sql"), "utf8");
-const client = new Client(process.env.DATABASE_URL);
+const client = new Client(url);
 
 try {
   await client.connect();
