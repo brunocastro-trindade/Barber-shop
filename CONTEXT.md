@@ -186,7 +186,46 @@ O risco do prefixo `VITE_` é real e vale saber: qualquer variável com esse
 prefixo entra no bundle e vira pública. Aqui não há nenhuma, e não deve passar a
 haver.
 
-### [ ] 2. RLS — depende de a Data API estar ligada
+### [x] 2. Isolamento entre contas — coberto por teste, RLS adiado com motivo
+
+`npm run isolamento` (`scripts/isolamento.js`) cria duas contas, faz uma delas
+criar um registro de **cada** entidade, e tenta alcançá-lo pela outra em **toda
+rota autenticada**: 13 listagens, leitura por id, 15 escritas e 10 exclusões.
+Depois confere que os dados da vítima continuam intactos.
+
+**O teste foi validado quebrando o isolamento de propósito**: removido o
+`where barbeiro_id` da listagem de clientes, ele acusou `VAZOU GET /clientes` e
+saiu com código 1. Teste que não sabe falhar não vale nada.
+
+Roda junto do smoke, a cada deploy.
+
+#### Por que RLS não foi implementado agora
+
+Avaliado e adiado, com dois motivos medidos:
+
+**1. Não há Data API.** Verificado no banco novo: não existe papel `anon` nem
+`authenticated`, não há schema `neon_auth` nem extensão PostgREST. Só o servidor
+Node alcança as tabelas. O cenário que justificaria RLS — tabela exposta por
+HTTP — não existe aqui.
+
+**2. RLS não protege contra a credencial da aplicação vazar.** A política
+precisaria identificar o inquilino por `current_setting('app.barbeiro_id')`.
+Quem rouba a string define essa variável sozinho. RLS defende contra *bug da
+aplicação*, e é exatamente isso que o teste acima cobre — em tempo de teste, não
+de execução.
+
+**Custo, se for implementado depois:** o driver HTTP (`neon()` em
+`server/db.js`) **não mantém sessão entre consultas** — medido: `set_config`
+numa chamada e leitura na seguinte se perde. Só sobrevive dentro de
+`sql.transaction([...])` ou na mesma instrução. Ou seja, RLS exigiria que toda
+consulta passasse a rodar em transação com a variável do inquilino. Dá para
+fazer sem tocar nos ~111 pontos de chamada, com um wrapper em `db.js` usando
+`AsyncLocalStorage`, mas isso muda como toda consulta do sistema executa.
+
+Vale reavaliar quando: a Data API for ligada, ou o volume de rotas escritas à
+mão crescer a ponto do teste não dar conta.
+
+### [ ] 2b. RLS propriamente dito — se a Data API for ligada
 
 **RLS está desligado nas 16 tabelas.** Hoje isso não é exposição, porque o único
 caminho até o banco é o servidor Node, que filtra por `barbeiro_id` em toda
