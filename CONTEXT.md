@@ -206,7 +206,43 @@ Duas observações que mudam o cálculo:
   `barbeiros.auth_user_id`. O banco NOVO (Ohio) **não tem**: só `public`. A
   migração deixou essa superfície abandonada para trás, o que é bom.
 
-### [ ] 3. Papel de menor privilégio — lacuna real
+### [x] 3. Papel de menor privilégio — IMPLEMENTADO em 11/08/2026
+
+A aplicação passou a conectar como **`cutflow_app`**, criado por
+`npm run db:papel-app`. Medido depois de criar:
+
+```
+createdb=false  createrole=false  bypassrls=false  superuser=false
+CREATE no schema public: false
+```
+
+Testado executando de verdade, não por inspeção. O papel **consegue**: ler,
+inserir, atualizar, apagar, `select ... for update` (a trigger do teto usa) e
+executar `cc_limite_equipe_por_unidade()`. E **não consegue**: criar tabela,
+apagar tabela, alterar tabela, criar papel, criar banco, desligar a trigger do
+teto, nem ler `pg_authid`.
+
+O smoke completo passa com a aplicação usando esse papel, e o teto de 3
+funcionários continua sendo imposto.
+
+**A migração usa outra credencial.** `db/schema.sql` tem 46 instruções de DDL, e
+o papel restrito falha nelas — confirmado: *"permission denied for schema
+public"*. Por isso o `render.yaml` declara duas variáveis:
+
+| Variável | Papel | Onde é usada |
+| --- | --- | --- |
+| `DATABASE_URL` | `cutflow_app` | o processo que atende requisição |
+| `DATABASE_URL_MIGRACAO` | `neondb_owner` | só na linha do release, dentro do build |
+
+O ganho: a string que fica no processo em produção não cria tabela, não apaga
+dados e não cria papel. Um vazamento dali expõe os dados, não o projeto.
+
+`alter default privileges` já está aplicado, então tabela criada por migração
+futura nasce com os grants certos — sem isso a aplicação quebraria no primeiro
+acesso à tabela nova.
+
+<details>
+<summary>Como era antes (para saber o que se ganhou)</summary>
 
 A aplicação conecta como `neondb_owner`, que tem:
 
@@ -234,6 +270,12 @@ o papel dono. Na prática: `DATABASE_URL` da aplicação aponta para `cutflow_ap
 e a fase de release usa uma variável separada com o papel dono. Como hoje o
 release roda dentro do `buildCommand` (ver `render.yaml`), essa separação exige
 mudar o comando — não é troca de uma linha.
+
+</details>
+
+**Ainda falta**: o item 2 (RLS) volta a fazer sentido agora, porque
+`cutflow_app` **não** tem `bypassrls`. Se a Data API do Neon estiver ligada,
+ligar RLS passa a ser proteção real, e não decoração.
 
 ### [ ] 4. Testar em branch efêmera, não em produção
 

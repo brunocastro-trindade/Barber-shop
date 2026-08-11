@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Credencial do papel de menor privilégio, gerada por `npm run db:papel-app`.
+.papel-app.local
+
 # Segredos: connection string do Neon e chave de sessão
 .env
 .env.*
